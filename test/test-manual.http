@@ -1,0 +1,58 @@
+### API Discord Top Donators - Testes Manuais
+### Certifique-se de que a aplicação está rodando: npm run start:dev
+
+### 1. Testar endpoint básico da aplicação
+GET http://localhost:3000
+
+###
+
+### 2. Buscar top customers com datas específicas (período de novembro)
+GET http://localhost:3000/central-cart-api/top-customers?from=2025-11-01&to=2025-11-18
+
+###
+
+### 3. Buscar top customers do mês anterior (automático)
+GET http://localhost:3000/central-cart-api/top-customers/previous-month
+
+###
+
+### 4. Testar envio para Discord manualmente (CUIDADO: envia mensagem real!)
+### Certifique-se de ter configurado DISCORD_BOT_TOKEN e DISCORD_CHANNEL_ID no .env
+POST http://localhost:3000/scheduler/send-top-donators
+
+###
+
+### 4.1. Testar envio para Discord com data customizada (CUIDADO: envia mensagem real!)
+### Você pode especificar qualquer período e nome do mês
+POST http://localhost:3000/scheduler/send-top-donators-custom
+Content-Type: application/json
+
+{
+  "from": "2024-10-01",
+  "to": "2024-10-31",
+  "monthName": "Outubro 2024"
+}
+
+###
+
+### 4.2. Testar com outro período customizado (Dezembro 2024)
+POST http://localhost:3000/scheduler/send-top-donators-custom
+Content-Type: application/json
+
+{
+  "from": "2024-12-01",
+  "to": "2024-12-31",
+  "monthName": "Dezembro 2024"
+}
+
+###
+
+### 5. Testar com outro período (outubro completo)
+GET http://localhost:3000/central-cart-api/top-customers?from=2025-10-01&to=2025-10-31
+
+###
+
+### 6. Testar com período customizado (últimos 7 dias)
+GET http://localhost:3000/central-cart-api/top-customers?from=2025-11-01&to=2025-11-18
+
+###

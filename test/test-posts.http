@@ -1,0 +1,46 @@
+### ✅ Testar API de Posts (FUNCIONANDO!)
+GET http://localhost:3000/scheduler/test-posts-api
+
+### Testar API CentralCart diretamente
+GET https://api.centralcart.com.br/v1/webstore/post
+Authorization: Bearer 7cf783d2-6142-4705-b207-e50b722735a8
+x-store-domain: loja.austv.net
+
+###
+
+### 🎯 WEBHOOK - Testar envio de post (RECOMENDADO)
+POST http://localhost:3000/webhook/test
+Content-Type: application/json
+
+{
+  "title": "🎮 Nova Atualização Survival 2.5.2",
+  "content": "<h2><strong>Correções:</strong></h2><p><strong>GUERRAS - </strong>Corrigido a exigência de tempo de jogo para entrar nas guerras;</p><ul><li>Agora todas as guerras exigem 9 horas ou mais de tempo de jogo para serem acessadas!</li></ul>",
+  "image": "https://via.placeholder.com/800x200/00FF00/FFFFFF?text=Atualização",
+  "author": "Admin AusTV"
+}
+
+###
+
+### Webhook CentralCart (este será chamado pela CentralCart)
+POST http://localhost:3000/webhook/centralcart/post-created
+Content-Type: application/json
+
+{
+  "title": "Título do Post",
+  "content": "Conteúdo do post...",
+  "image": "https://exemplo.com/imagem.jpg"
+}
+
+###
+
+### Testar envio do último post (depende da API funcionar)
+POST http://localhost:3000/scheduler/send-latest-post
+Content-Type: application/json
+
+###
+
+### Verificar novos posts manualmente (depende da API funcionar)
+POST http://localhost:3000/scheduler/check-new-posts
+Content-Type: application/json
+
+###

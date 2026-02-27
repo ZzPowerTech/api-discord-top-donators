@@ -1,0 +1,32 @@
+### API Discord Top Donators - Testes na VPS
+### VPS: 198.1.195.236:3333
+
+### 1. Testar endpoint básico da aplicação
+GET http://198.1.195.236:3333
+
+###
+
+### 2. Buscar top customers com datas específicas
+GET http://198.1.195.236:3333/central-cart-api/top-customers?from=2025-11-01&to=2025-11-18
+
+###
+
+### 3. Buscar top customers do mês anterior (automático)
+GET http://198.1.195.236:3333/central-cart-api/top-customers/previous-month
+
+###
+
+### 4. Testar envio para Discord (CUIDADO: envia mensagem real!)
+POST http://198.1.195.236:3333/scheduler/send-top-donators
+
+###
+
+### 5. Testar envio para Discord com data customizada
+POST http://198.1.195.236:3333/scheduler/send-top-donators-custom
+Content-Type: application/json
+
+{
+  "from": "2025-01-01",
+  "to": "2025-01-31",
+  "monthName": "Janeiro 2025"
+}
