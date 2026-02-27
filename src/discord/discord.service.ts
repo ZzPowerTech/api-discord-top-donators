@@ -45,6 +45,17 @@ export class DiscordService {
   private cleanHtml(html: string): string {
     return (
       html
+        // Converte entidades HTML primeiro
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        // Remove parágrafos que só contêm <br> (substitui por linha vazia simples)
+        .replace(/<p[^>]*>\s*<br[^>]*>\s*<\/p>/gi, '\n')
+        // Remove parágrafos vazios (só espaços)
+        .replace(/<p[^>]*>\s*<\/p>/gi, '')
         // Processa h2 e h3 com strong dentro (caso comum)
         .replace(/<h2><strong>(.*?)<\/strong><\/h2>/g, '\n**$1**\n')
         .replace(/<h3><strong>(.*?)<\/strong><\/h3>/g, '\n**$1**\n')
@@ -53,28 +64,24 @@ export class DiscordService {
         .replace(/<h3>(.*?)<\/h3>/g, '\n**$1**\n')
         // Processa strong
         .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
-        // Remove parágrafos
-        .replace(/<p>/g, '')
+        // Remove aberturas de parágrafos
+        .replace(/<p[^>]*>/g, '')
+        // Converte fechamento de parágrafos em quebra de linha
         .replace(/<\/p>/g, '\n')
         // Processa listas
         .replace(/<ul>/g, '')
-        .replace(/<\/ul>/g, '\n')
+        .replace(/<\/ul>/g, '')
         .replace(/<li>/g, '• ')
         .replace(/<\/li>/g, '\n')
         // Quebras de linha
         .replace(/<br\s*\/?>/g, '\n')
         // Remove outras tags HTML restantes
         .replace(/<[^>]+>/g, '')
-        // Converte entidades HTML
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
         // Limpa múltiplos asteriscos consecutivos
         .replace(/\*{3,}/g, '**')
-        // Limpa espaços extras e múltiplas quebras de linha
+        // Remove espaços no início e fim de cada linha
+        .replace(/^[ \t]+|[ \t]+$/gm, '')
+        // Limpa múltiplas quebras de linha (máximo 2 = 1 linha vazia)
         .replace(/\n{3,}/g, '\n\n')
         .replace(/^\n+|\n+$/g, '')
         .trim()
