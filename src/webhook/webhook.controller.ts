@@ -31,6 +31,8 @@ export class WebhookController {
         content: post.content || post.description || '',
         image: post.image || post.thumbnail,
         author: post.author,
+        created_at: post.created_at,
+        slug: post.slug,
       });
 
       this.logger.log(`Post "${post.title}" enviado para Discord com sucesso`);

@@ -6,4 +6,5 @@ export interface PostDto {
   author?: string;
   created_at: string;
   updated_at: string;
+  slug?: string;
 }

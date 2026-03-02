@@ -42,89 +42,52 @@ export class DiscordService {
     }
   }
 
-  private cleanHtml(html: string): string {
-    return (
-      html
-        // Converte entidades HTML primeiro
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&amp;/g, '&')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&quot;/g, '"')
-        .replace(/&#39;/g, "'")
-        // Remove parágrafos que só contêm <br> (substitui por linha vazia simples)
-        .replace(/<p[^>]*>\s*<br[^>]*>\s*<\/p>/gi, '\n')
-        // Remove parágrafos vazios (só espaços)
-        .replace(/<p[^>]*>\s*<\/p>/gi, '')
-        // Processa h2 e h3 com strong dentro (caso comum)
-        .replace(/<h2><strong>(.*?)<\/strong><\/h2>/g, '\n**$1**\n')
-        .replace(/<h3><strong>(.*?)<\/strong><\/h3>/g, '\n**$1**\n')
-        // Processa h2 e h3 normais
-        .replace(/<h2>(.*?)<\/h2>/g, '\n**$1**\n')
-        .replace(/<h3>(.*?)<\/h3>/g, '\n**$1**\n')
-        // Processa strong
-        .replace(/<strong>(.*?)<\/strong>/g, '**$1**')
-        // Remove aberturas de parágrafos
-        .replace(/<p[^>]*>/g, '')
-        // Converte fechamento de parágrafos em quebra de linha
-        .replace(/<\/p>/g, '\n')
-        // Processa listas
-        .replace(/<ul>/g, '')
-        .replace(/<\/ul>/g, '')
-        .replace(/<li>/g, '• ')
-        .replace(/<\/li>/g, '\n')
-        // Quebras de linha
-        .replace(/<br\s*\/?>/g, '\n')
-        // Remove outras tags HTML restantes
-        .replace(/<[^>]+>/g, '')
-        // Limpa múltiplos asteriscos consecutivos
-        .replace(/\*{3,}/g, '**')
-        // Remove espaços no início e fim de cada linha
-        .replace(/^[ \t]+|[ \t]+$/gm, '')
-        // Limpa múltiplas quebras de linha (máximo 2 = 1 linha vazia)
-        .replace(/\n{3,}/g, '\n\n')
-        .replace(/^\n+|\n+$/g, '')
-        .trim()
-    );
-  }
-
   async sendPostUpdate(post: {
     title: string;
     content: string;
     image?: string;
     author?: string;
     created_at?: string;
+    id?: number;
+    slug?: string;
   }): Promise<void> {
     try {
-      const webhookUrl = config.discord.updatesWebhookUrl;
+      const webhookUrl =
+        config.discord.updatesWebhookUrl || config.discord.webhookUrl;
 
       if (!webhookUrl) {
-        throw new Error('Discord updates webhook URL não configurado');
+        throw new Error('Webhook do Discord não configurado');
       }
 
-      // Limpa o HTML do conteúdo
-      const cleanContent = this.cleanHtml(post.content);
+      // Constrói o link do post no formato /post/DD/MM/YYYY/slug
+      const storeUrl = `https://${config.centralCart.storeId}`;
+      let postLink = storeUrl;
 
+      if (post.slug && post.created_at) {
+        // Extrair data do created_at
+        const date = new Date(post.created_at);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+
+        postLink = `${storeUrl}/post/${day}/${month}/${year}/${post.slug}`;
+      } else if (post.slug) {
+        // Se não tiver created_at, usa a data atual
+        const date = new Date();
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const year = date.getFullYear();
+
+        postLink = `${storeUrl}/post/${day}/${month}/${year}/${post.slug}`;
+      }
+
+      // Embed simples com aviso fixo
       const embed: APIEmbed = {
-        title: post.title,
-        description: cleanContent,
+        title: '📢 Nova Postagem!',
+        description: `Uma nova postagem foi feita no site!\n\n➡️ [**Clique aqui para ler o novo conteúdo**](${postLink})`,
         color: 0x00f0ff,
-        timestamp: post.created_at || new Date().toISOString(),
+        timestamp: new Date().toISOString(),
       };
-
-      // Adiciona autor no footer se disponível
-      if (post.author) {
-        embed.footer = {
-          text: `${post.author}`,
-        };
-      }
-
-      // Se houver imagem, adiciona ao embed
-      if (post.image) {
-        embed.image = {
-          url: post.image,
-        };
-      }
 
       await axios.post(webhookUrl, {
         content: '<@&939951821701644328>',
