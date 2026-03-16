@@ -23,6 +23,7 @@ concurrency:
     cancel-in-progress: false
 
 env:
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     IMAGE_NAME: zzpowertech/api-site
     APP_CONTAINER_NAME: api-site
     COMPOSE_FILE_NAME: docker-compose.yaml
@@ -66,7 +67,11 @@ jobs:
 
                   IFS='.' read -r MAJOR MINOR PATCH <<< "$BASE_VERSION"
 
-                  COMMITS=$(git log --format=%B "$LATEST_TAG"..HEAD)
+                  if [ "$LATEST_TAG" = "v0.0.0" ]; then
+                    COMMITS=$(git log --format=%B HEAD)
+                  else
+                    COMMITS=$(git log --format=%B "$LATEST_TAG"..HEAD)
+                  fi
 
                   BUMP_TYPE="patch"
 
