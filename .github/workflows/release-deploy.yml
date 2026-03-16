@@ -202,12 +202,8 @@ jobs:
                         exit 1
                       fi
 
-                      docker compose -f "$COMPOSE_FILE" pull ${{ env.APP_CONTAINER_NAME }}
-                      docker compose -f "$COMPOSE_FILE" up -d --force-recreate
-                      docker image prune -f
-
-                      docker compose -f "$COMPOSE_FILE" ps
-                      docker logs "${{ env.APP_CONTAINER_NAME }}" --tail 100
+                      echo "Versao atualizada no $COMPOSE_FILE:"
+                      grep -E '^[[:space:]]*image:[[:space:]]*${{ env.IMAGE_NAME }}:' "$COMPOSE_FILE"
 
             - name: Deploy via SSH (key)
               if: env.VPS_PASSWORD_SET == ''
@@ -243,9 +239,5 @@ jobs:
                         exit 1
                       fi
 
-                      docker compose -f "$COMPOSE_FILE" pull ${{ env.APP_CONTAINER_NAME }}
-                      docker compose -f "$COMPOSE_FILE" up -d --force-recreate
-                      docker image prune -f
-
-                      docker compose -f "$COMPOSE_FILE" ps
-                      docker logs "${{ env.APP_CONTAINER_NAME }}" --tail 100
+                      echo "Versao atualizada no $COMPOSE_FILE:"
+                      grep -E '^[[:space:]]*image:[[:space:]]*${{ env.IMAGE_NAME }}:' "$COMPOSE_FILE"
