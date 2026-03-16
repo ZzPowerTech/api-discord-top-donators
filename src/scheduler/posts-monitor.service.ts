@@ -96,6 +96,7 @@ export class PostsMonitorService implements OnModuleInit {
         author: post.author,
         created_at: post.created_at,
         id: post.id,
+        slug: post.slug,
       });
 
       this.logger.log(`Post "${post.title}" enviado com sucesso`);
