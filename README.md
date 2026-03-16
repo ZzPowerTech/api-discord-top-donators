@@ -176,7 +176,54 @@ npm run build
 docker build -t api-discord-top-donators .
 
 # Executar container
-docker run -p 3000:3000 --env-file .env api-discord-top-donators
+docker run -p 3333:3333 --env-file .env api-discord-top-donators
+```
+
+## 🚀 CI/CD com GitHub Actions
+
+O workflow completo foi configurado em [.github/workflows/release-deploy.yml](.github/workflows/release-deploy.yml) e executa:
+
+- versionamento automatico no `main` (com base em Conventional Commits)
+- criacao de tag Git (`vX.Y.Z`)
+- geracao automatica de Release Notes no GitHub
+- build e push da imagem Docker
+- deploy automatico na VPS via SSH com `docker compose`
+
+### 🔐 Secrets obrigatorios no GitHub
+
+Configure em `Settings > Secrets and variables > Actions`:
+
+- `DOCKERHUB_USERNAME`
+- `DOCKERHUB_TOKEN`
+- `VPS_HOST`
+- `VPS_USER`
+- `VPS_SSH_KEY`
+- `VPS_SSH_PORT` (opcional, default: 22)
+- `VPS_APP_DIR` (diretorio onde esta o `docker-compose.yml` na VPS)
+
+### 📌 Como o bump de versao funciona
+
+- `BREAKING CHANGE` ou `!:` -> `major`
+- `feat:` -> `minor`
+- `fix:` (ou padrao) -> `patch`
+
+Tambem e possivel disparar manualmente no Actions com `workflow_dispatch` e forcar `patch|minor|major`.
+
+### 🧩 Como o deploy atualiza a versao na VPS
+
+O pipeline nao depende de `API_IMAGE_TAG` no `.env`.
+
+Ele conecta por SSH e atualiza diretamente a linha `image:` no `docker-compose.yml` da VPS para a versao nova, por exemplo:
+
+```yaml
+image: zzpowertech/api-site:3.2.1
+```
+
+Depois executa:
+
+```bash
+docker compose pull api-site
+docker compose up -d --force-recreate
 ```
 
 ## 📄 Licença

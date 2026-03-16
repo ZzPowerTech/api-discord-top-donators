@@ -2,8 +2,9 @@ version: "3.8"
 
 services:
   api-site:
-    image: zzpowertech/api-site:latest
+    image: zzpowertech/api-site:3.2
     container_name: api-site
+    pull_policy: always
     ports:
       - "3333:3333"
     env_file:
