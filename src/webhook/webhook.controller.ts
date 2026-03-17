@@ -33,6 +33,7 @@ export class WebhookController {
         author: post.author,
         created_at: post.created_at,
         slug: post.slug,
+        path: post.path,
       });
 
       this.logger.log(`Post "${post.title}" enviado para Discord com sucesso`);
@@ -59,6 +60,10 @@ export class WebhookController {
       title: testData.title || 'Teste de Post',
       content: testData.content || 'Este é um post de teste via webhook',
       image: testData.image,
+      author: testData.author,
+      created_at: testData.created_at,
+      slug: testData.slug,
+      path: testData.path,
     });
 
     return {
