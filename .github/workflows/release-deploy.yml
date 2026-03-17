@@ -184,14 +184,32 @@ jobs:
 
                       cd "$APP_DIR"
 
+                      echo "Diretorio atual: $(pwd)"
+                      ls -la
+
+                      if [ ! -f "$COMPOSE_FILE" ]; then
+                        if [ -f "$APP_DIR/$COMPOSE_FILE" ]; then
+                          COMPOSE_FILE="$APP_DIR/$COMPOSE_FILE"
+                        fi
+                      fi
+
                       if [ ! -f "$COMPOSE_FILE" ]; then
                         if [ -f "docker-compose.yml" ]; then
                           COMPOSE_FILE="docker-compose.yml"
                         elif [ -f "docker-compose.yaml" ]; then
                           COMPOSE_FILE="docker-compose.yaml"
                         else
+                          FOUND_COMPOSE=$(find "$APP_DIR" -maxdepth 3 -type f \( -name "docker-compose.yml" -o -name "docker-compose.yaml" \) | head -n 1)
+                          if [ -n "$FOUND_COMPOSE" ]; then
+                            COMPOSE_FILE="$FOUND_COMPOSE"
+                          fi
+                        fi
+
+                        if [ ! -f "$COMPOSE_FILE" ]; then
                           echo "Arquivo docker-compose.yml ou docker-compose.yaml nao encontrado em $APP_DIR"
                           exit 1
+                        else
+                          echo "Compose encontrado: $COMPOSE_FILE"
                         fi
                       fi
 
@@ -204,6 +222,17 @@ jobs:
 
                       echo "Versao atualizada no $COMPOSE_FILE:"
                       grep -E '^[[:space:]]*image:[[:space:]]*${{ env.IMAGE_NAME }}:' "$COMPOSE_FILE"
+
+                      echo "Fazendo pull da nova imagem..."
+                      docker-compose -f "$COMPOSE_FILE" pull
+
+                      echo "Recriando containers..."
+                      docker-compose -f "$COMPOSE_FILE" up -d --force-recreate
+
+                      echo "Limpando imagens antigas..."
+                      docker image prune -f
+
+                      echo "Deploy concluido com sucesso!"
 
             - name: Deploy via SSH (key)
               if: env.VPS_PASSWORD_SET == ''
@@ -221,14 +250,32 @@ jobs:
 
                       cd "$APP_DIR"
 
+                      echo "Diretorio atual: $(pwd)"
+                      ls -la
+
+                      if [ ! -f "$COMPOSE_FILE" ]; then
+                        if [ -f "$APP_DIR/$COMPOSE_FILE" ]; then
+                          COMPOSE_FILE="$APP_DIR/$COMPOSE_FILE"
+                        fi
+                      fi
+
                       if [ ! -f "$COMPOSE_FILE" ]; then
                         if [ -f "docker-compose.yml" ]; then
                           COMPOSE_FILE="docker-compose.yml"
                         elif [ -f "docker-compose.yaml" ]; then
                           COMPOSE_FILE="docker-compose.yaml"
                         else
+                          FOUND_COMPOSE=$(find "$APP_DIR" -maxdepth 3 -type f \( -name "docker-compose.yml" -o -name "docker-compose.yaml" \) | head -n 1)
+                          if [ -n "$FOUND_COMPOSE" ]; then
+                            COMPOSE_FILE="$FOUND_COMPOSE"
+                          fi
+                        fi
+
+                        if [ ! -f "$COMPOSE_FILE" ]; then
                           echo "Arquivo docker-compose.yml ou docker-compose.yaml nao encontrado em $APP_DIR"
                           exit 1
+                        else
+                          echo "Compose encontrado: $COMPOSE_FILE"
                         fi
                       fi
 
@@ -241,3 +288,14 @@ jobs:
 
                       echo "Versao atualizada no $COMPOSE_FILE:"
                       grep -E '^[[:space:]]*image:[[:space:]]*${{ env.IMAGE_NAME }}:' "$COMPOSE_FILE"
+
+                      echo "Fazendo pull da nova imagem..."
+                      docker-compose -f "$COMPOSE_FILE" pull
+
+                      echo "Recriando containers..."
+                      docker-compose -f "$COMPOSE_FILE" up -d --force-recreate
+
+                      echo "Limpando imagens antigas..."
+                      docker image prune -f
+
+                      echo "Deploy concluido com sucesso!"
