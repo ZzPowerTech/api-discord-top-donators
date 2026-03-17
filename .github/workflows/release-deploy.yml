@@ -224,10 +224,10 @@ jobs:
                       grep -E '^[[:space:]]*image:[[:space:]]*${{ env.IMAGE_NAME }}:' "$COMPOSE_FILE"
 
                       echo "Fazendo pull da nova imagem..."
-                      docker-compose -f "$COMPOSE_FILE" pull
+                      docker compose -f "$COMPOSE_FILE" pull
 
                       echo "Recriando containers..."
-                      docker-compose -f "$COMPOSE_FILE" up -d --force-recreate
+                      docker compose -f "$COMPOSE_FILE" up -d --force-recreate
 
                       echo "Limpando imagens antigas..."
                       docker image prune -f
@@ -290,10 +290,10 @@ jobs:
                       grep -E '^[[:space:]]*image:[[:space:]]*${{ env.IMAGE_NAME }}:' "$COMPOSE_FILE"
 
                       echo "Fazendo pull da nova imagem..."
-                      docker-compose -f "$COMPOSE_FILE" pull
+                      docker compose -f "$COMPOSE_FILE" pull
 
                       echo "Recriando containers..."
-                      docker-compose -f "$COMPOSE_FILE" up -d --force-recreate
+                      docker compose -f "$COMPOSE_FILE" up -d --force-recreate
 
                       echo "Limpando imagens antigas..."
                       docker image prune -f
