@@ -223,8 +223,9 @@ jobs:
                       echo "Versao atualizada no $COMPOSE_FILE:"
                       grep -E '^[[:space:]]*image:[[:space:]]*${{ env.IMAGE_NAME }}:' "$COMPOSE_FILE"
 
-                      echo "Parando container existente..."
-                      docker compose -f "$COMPOSE_FILE" down ${{ env.APP_CONTAINER_NAME }} || true
+                      echo "Parando e removendo container existente..."
+                      docker stop ${{ env.APP_CONTAINER_NAME }} || true
+                      docker rm ${{ env.APP_CONTAINER_NAME }} || true
 
                       echo "Fazendo pull da nova imagem..."
                       docker compose -f "$COMPOSE_FILE" pull ${{ env.APP_CONTAINER_NAME }}
@@ -292,8 +293,9 @@ jobs:
                       echo "Versao atualizada no $COMPOSE_FILE:"
                       grep -E '^[[:space:]]*image:[[:space:]]*${{ env.IMAGE_NAME }}:' "$COMPOSE_FILE"
 
-                      echo "Parando container existente..."
-                      docker compose -f "$COMPOSE_FILE" down ${{ env.APP_CONTAINER_NAME }} || true
+                      echo "Parando e removendo container existente..."
+                      docker stop ${{ env.APP_CONTAINER_NAME }} || true
+                      docker rm ${{ env.APP_CONTAINER_NAME }} || true
 
                       echo "Fazendo pull da nova imagem..."
                       docker compose -f "$COMPOSE_FILE" pull ${{ env.APP_CONTAINER_NAME }}
