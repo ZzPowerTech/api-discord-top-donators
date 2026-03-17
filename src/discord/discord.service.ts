@@ -50,6 +50,7 @@ export class DiscordService {
     created_at?: string;
     id?: number;
     slug?: string;
+    path?: string;
   }): Promise<void> {
     try {
       const webhookUrl =
@@ -59,24 +60,27 @@ export class DiscordService {
         throw new Error('Webhook do Discord não configurado');
       }
 
-      // Constrói o link do post no formato /post/DD/MM/YYYY/slug
+      // Constrói o link do post
       const storeUrl = `https://${config.centralCart.storeId}`;
       let postLink = storeUrl;
 
-      if (post.slug && post.created_at) {
-        // Extrair data do created_at
+      // Prioriza o campo 'path' que vem da API Central Cart (formato: /post/DD/MM/YYYY/slug)
+      if (post.path) {
+        postLink = `${storeUrl}${post.path}`;
+      } else if (post.slug && post.created_at) {
+        // Fallback: Extrair data do created_at usando UTC
         const date = new Date(post.created_at);
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const year = date.getUTCFullYear();
 
         postLink = `${storeUrl}/post/${day}/${month}/${year}/${post.slug}`;
       } else if (post.slug) {
-        // Se não tiver created_at, usa a data atual
+        // Último fallback: usa a data atual em UTC
         const date = new Date();
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const year = date.getFullYear();
+        const day = String(date.getUTCDate()).padStart(2, '0');
+        const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+        const year = date.getUTCFullYear();
 
         postLink = `${storeUrl}/post/${day}/${month}/${year}/${post.slug}`;
       }

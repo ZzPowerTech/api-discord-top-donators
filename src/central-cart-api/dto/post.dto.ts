@@ -7,4 +7,6 @@ export interface PostDto {
   created_at: string;
   updated_at: string;
   slug?: string;
+  path?: string;
+  published_at?: string;
 }
