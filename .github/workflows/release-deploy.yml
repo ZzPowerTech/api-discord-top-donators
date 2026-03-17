@@ -223,11 +223,14 @@ jobs:
                       echo "Versao atualizada no $COMPOSE_FILE:"
                       grep -E '^[[:space:]]*image:[[:space:]]*${{ env.IMAGE_NAME }}:' "$COMPOSE_FILE"
 
+                      echo "Parando container existente..."
+                      docker compose -f "$COMPOSE_FILE" down ${{ env.APP_CONTAINER_NAME }} || true
+
                       echo "Fazendo pull da nova imagem..."
                       docker compose -f "$COMPOSE_FILE" pull ${{ env.APP_CONTAINER_NAME }}
 
-                      echo "Recriando containers..."
-                      docker compose -f "$COMPOSE_FILE" up -d --force-recreate ${{ env.APP_CONTAINER_NAME }}
+                      echo "Iniciando container..."
+                      docker compose -f "$COMPOSE_FILE" up -d ${{ env.APP_CONTAINER_NAME }}
 
                       echo "Limpando imagens antigas..."
                       docker image prune -f
@@ -289,11 +292,14 @@ jobs:
                       echo "Versao atualizada no $COMPOSE_FILE:"
                       grep -E '^[[:space:]]*image:[[:space:]]*${{ env.IMAGE_NAME }}:' "$COMPOSE_FILE"
 
+                      echo "Parando container existente..."
+                      docker compose -f "$COMPOSE_FILE" down ${{ env.APP_CONTAINER_NAME }} || true
+
                       echo "Fazendo pull da nova imagem..."
                       docker compose -f "$COMPOSE_FILE" pull ${{ env.APP_CONTAINER_NAME }}
 
-                      echo "Recriando containers..."
-                      docker compose -f "$COMPOSE_FILE" up -d --force-recreate ${{ env.APP_CONTAINER_NAME }}
+                      echo "Iniciando container..."
+                      docker compose -f "$COMPOSE_FILE" up -d ${{ env.APP_CONTAINER_NAME }}
 
                       echo "Limpando imagens antigas..."
                       docker image prune -f
