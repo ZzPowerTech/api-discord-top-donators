@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { config } from '../config/config';
 import { TopCustomersResponse, TopCustomerDto } from './dto/top-customer.dto';
 import { PostDto } from './dto/post.dto';
+import { getErrorMessage } from '../common/utils/get-error-message';
 
 @Injectable()
 export class CentralCartApiService {
@@ -110,7 +111,7 @@ export class CentralCartApiService {
       this.logger.log(`${posts.length} posts encontrados`);
       return posts;
     } catch (error) {
-      this.logger.error('Erro ao buscar posts', error?.message || error);
+      this.logger.error('Erro ao buscar posts', getErrorMessage(error));
       return [];
     }
   }

@@ -213,7 +213,7 @@ export class ImageGeneratorService {
       } else {
         this.renderFallbackLogo(ctx, footerY);
       }
-    } catch (error) {
+    } catch {
       this.logger.warn('Logo não encontrada, usando texto');
       this.renderFallbackLogo(ctx, footerY);
     }

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import axios from 'axios';
+import { getErrorMessage } from '../../common/utils/get-error-message';
 
 @Injectable()
 export class MinecraftSkinService {
@@ -19,21 +20,19 @@ export class MinecraftSkinService {
       // Tentar Crafatar primeiro
       try {
         return await this.fetchSkinFromCrafatar(uuid);
-      } catch (craftarError) {
+      } catch {
         this.logger.warn(`Crafatar falhou, tentando Visage`);
-        
+
         // Fallback para Visage
         try {
           return await this.fetchSkinFromVisage(uuid);
-        } catch (visageError) {
+        } catch {
           this.logger.warn(`Visage também falhou, usando Steve`);
           return await this.getDefaultSkin();
         }
       }
-    } catch (error) {
-      this.logger.warn(
-        `⚠️ Erro ao buscar UUID para ${username}, usando Steve`,
-      );
+    } catch {
+      this.logger.warn(`⚠️ Erro ao buscar UUID para ${username}, usando Steve`);
       return await this.getDefaultSkin();
     }
   }
@@ -50,7 +49,10 @@ export class MinecraftSkinService {
       this.logger.log(`✅ UUID encontrado para ${username}: ${uuid}`);
       return uuid;
     } catch (error) {
-      this.logger.error(`Erro ao buscar UUID para ${username}:`, error.message);
+      this.logger.error(
+        `Erro ao buscar UUID para ${username}:`,
+        getErrorMessage(error),
+      );
       throw error;
     }
   }
@@ -71,28 +73,25 @@ export class MinecraftSkinService {
       this.logger.log(`✅ Skin carregada com sucesso do Crafatar`);
       return Buffer.from(response.data);
     } catch (error) {
-      this.logger.warn(`Crafatar retornou erro: ${error.message}`);
+      this.logger.warn(`Crafatar retornou erro: ${getErrorMessage(error)}`);
       throw error;
     }
   }
 
   private async fetchSkinFromVisage(uuid: string): Promise<Buffer> {
     try {
-      const response = await axios.get(
-        `${this.VISAGE_API_URL}/${uuid}?y=70`,
-        {
-          responseType: 'arraybuffer',
-          timeout: 10000,
-          headers: {
-            'User-Agent': 'Chrome/54',
-          },
-          validateStatus: (status) => status === 200,
+      const response = await axios.get(`${this.VISAGE_API_URL}/${uuid}?y=70`, {
+        responseType: 'arraybuffer',
+        timeout: 10000,
+        headers: {
+          'User-Agent': 'Chrome/54',
         },
-      );
+        validateStatus: (status) => status === 200,
+      });
       this.logger.log(`✅ Skin carregada com sucesso do Visage`);
       return Buffer.from(response.data);
     } catch (error) {
-      this.logger.error(`Visage retornou erro: ${error.message}`);
+      this.logger.error(`Visage retornou erro: ${getErrorMessage(error)}`);
       throw error;
     }
   }

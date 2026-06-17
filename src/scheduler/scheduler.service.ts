@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { CentralCartApiService } from '../central-cart-api/central-cart-api.service';
 import { DiscordService } from '../discord/discord.service';
 import { ImageGeneratorService } from '../image-generator/image-generator.service';
@@ -34,8 +34,6 @@ export class SchedulerService {
   @Cron('0 0 1 * *', {
     timeZone: 'America/Sao_Paulo',
   })
-
-  
   async sendMonthlyTopDonators() {
     try {
       this.logger.log('Iniciando envio dos top doadores do mês anterior');

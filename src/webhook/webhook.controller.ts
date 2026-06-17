@@ -1,5 +1,6 @@
 import { Controller, Post, Body, Headers, Logger } from '@nestjs/common';
 import { DiscordService } from '../discord/discord.service';
+import { getErrorMessage } from '../common/utils/get-error-message';
 
 @Controller('webhook')
 export class WebhookController {
@@ -10,7 +11,7 @@ export class WebhookController {
   @Post('centralcart/post-created')
   async handlePostCreated(
     @Body() postData: any,
-    @Headers('x-centralcart-signature') signature?: string,
+    @Headers('x-centralcart-signature') _signature?: string,
   ) {
     try {
       this.logger.log('Webhook recebido da CentralCart');
@@ -46,7 +47,7 @@ export class WebhookController {
       this.logger.error('Erro ao processar webhook', error);
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
       };
     }
   }

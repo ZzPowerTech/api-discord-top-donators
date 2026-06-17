@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { CentralCartApiService } from '../central-cart-api/central-cart-api.service';
 import { DiscordService } from '../discord/discord.service';
 import { PostDto } from '../central-cart-api/dto/post.dto';

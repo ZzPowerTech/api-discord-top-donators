@@ -2,6 +2,7 @@ import { Controller, Post, Body, Get, Query } from '@nestjs/common';
 import { SchedulerService } from './scheduler.service';
 import { PostsMonitorService } from './posts-monitor.service';
 import { CentralCartApiService } from '../central-cart-api/central-cart-api.service';
+import { getErrorMessage } from '../common/utils/get-error-message';
 
 @Controller('scheduler')
 export class SchedulerController {
@@ -26,7 +27,9 @@ export class SchedulerController {
       body.to,
       body.monthName,
     );
-    return { message: `Top doadores de ${body.from} a ${body.to} enviados para o Discord!` };
+    return {
+      message: `Top doadores de ${body.from} a ${body.to} enviados para o Discord!`,
+    };
   }
 
   @Post('send-latest-post')
@@ -49,14 +52,15 @@ export class SchedulerController {
         success: true,
         count: posts.length,
         posts: posts,
-        message: posts.length > 0 
-          ? `${posts.length} posts encontrados!` 
-          : 'Nenhum endpoint de posts disponível. Verifique a documentação da API CentralCart ou configure um webhook.',
+        message:
+          posts.length > 0
+            ? `${posts.length} posts encontrados!`
+            : 'Nenhum endpoint de posts disponível. Verifique a documentação da API CentralCart ou configure um webhook.',
       };
     } catch (error) {
       return {
         success: false,
-        error: error.message,
+        error: getErrorMessage(error),
       };
     }
   }
