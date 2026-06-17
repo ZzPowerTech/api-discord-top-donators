@@ -3,6 +3,7 @@ import { SchedulerService } from './scheduler.service';
 import { PostsMonitorService } from './posts-monitor.service';
 import { CentralCartApiService } from '../central-cart-api/central-cart-api.service';
 import { getErrorMessage } from '../common/utils/get-error-message';
+import { SendTopDonatorsCustomDto } from './dto/send-top-donators-custom.dto';
 
 @Controller('scheduler')
 export class SchedulerController {
@@ -19,16 +20,14 @@ export class SchedulerController {
   }
 
   @Post('send-top-donators-custom')
-  async sendTopDonatorsCustom(
-    @Body() body: { from: string; to: string; monthName?: string },
-  ) {
+  async sendTopDonatorsCustom(@Body() dto: SendTopDonatorsCustomDto) {
     await this.schedulerService.sendTopDonatorsCustomDate(
-      body.from,
-      body.to,
-      body.monthName,
+      dto.from,
+      dto.to,
+      dto.monthName,
     );
     return {
-      message: `Top doadores de ${body.from} a ${body.to} enviados para o Discord!`,
+      message: `Top doadores de ${dto.from} a ${dto.to} enviados para o Discord!`,
     };
   }
 

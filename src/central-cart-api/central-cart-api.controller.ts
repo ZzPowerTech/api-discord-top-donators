@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { CentralCartApiService } from './central-cart-api.service';
 import { TopCustomerDto } from './dto/top-customer.dto';
+import { GetTopCustomersQueryDto } from './dto/get-top-customers-query.dto';
 
 @Controller('central-cart-api')
 export class CentralCartApiController {
@@ -8,10 +9,9 @@ export class CentralCartApiController {
 
   @Get('top-customers')
   async getTopCustomers(
-    @Query('from') from: string,
-    @Query('to') to: string,
+    @Query() query: GetTopCustomersQueryDto,
   ): Promise<TopCustomerDto[]> {
-    return this.centralCartApiService.getTopCustomers(from, to);
+    return this.centralCartApiService.getTopCustomers(query.from, query.to);
   }
 
   @Get('top-customers/previous-month')

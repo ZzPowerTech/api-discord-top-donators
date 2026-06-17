@@ -1,20 +1,13 @@
-import { Logger, ValidationPipe } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
-import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { config } from './config/config';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      transform: true,
-      transformOptions: { enableImplicitConversion: true },
-    }),
-  );
-  app.useGlobalFilters(new AllExceptionsFilter());
+  // ValidationPipe e AllExceptionsFilter sao registrados como APP_PIPE/APP_FILTER
+  // no AppModule (valem em runtime e nos testes e2e).
   app.enableShutdownHooks();
 
   await app.listen(config.app.port);

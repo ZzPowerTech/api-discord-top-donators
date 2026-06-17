@@ -4,7 +4,7 @@ import * as request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
 
-describe('Health (e2e)', () => {
+describe('App (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeAll(() => {
@@ -26,7 +26,7 @@ describe('Health (e2e)', () => {
     await app.close();
   });
 
-  it('/health (GET) retorna status ok e versao', () => {
+  it('GET /health retorna status ok e versao', () => {
     return request(app.getHttpServer())
       .get('/health')
       .expect(200)
@@ -39,5 +39,19 @@ describe('Health (e2e)', () => {
           throw new Error('version ausente');
         }
       });
+  });
+
+  it('POST /scheduler/send-top-donators-custom rejeita datas invalidas (400)', () => {
+    return request(app.getHttpServer())
+      .post('/scheduler/send-top-donators-custom')
+      .send({ from: 'nao-e-data', to: 'tambem-nao' })
+      .expect(400);
+  });
+
+  it('POST /webhook/centralcart/post-created rejeita payload sem title (400)', () => {
+    return request(app.getHttpServer())
+      .post('/webhook/centralcart/post-created')
+      .send({ content: 'sem titulo' })
+      .expect(400);
   });
 });
