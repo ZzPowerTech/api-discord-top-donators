@@ -1,8 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createCanvas, loadImage } from '@napi-rs/canvas';
-import * as fs from 'fs';
+import {
+  Canvas,
+  createCanvas,
+  Image,
+  loadImage,
+  SKRSContext2D,
+} from '@napi-rs/canvas';
 import * as path from 'path';
-import { TopCustomerDto } from '../central-cart-api/dto/top-customer.dto';
+import { TopCustomerView } from '../central-cart-api/dto/top-customer.dto';
 import { MinecraftSkinService } from './services/minecraft-skin.service';
 import { FontRegistrationService } from './services/font-registration.service';
 import { CanvasRendererService } from './services/canvas-renderer.service';
@@ -13,6 +18,10 @@ import {
   TITLE_CONFIG,
   SUBTITLE_CONFIG,
   RANK_COLORS,
+  RANK_TEXT_CONFIG,
+  LOGO_CONFIG,
+  PLACEHOLDER_USERNAME,
+  PlayerPosition,
 } from './config/image.config';
 
 @Injectable()
@@ -25,36 +34,27 @@ export class ImageGeneratorService {
     private readonly canvasRenderer: CanvasRendererService,
   ) {}
 
+  /** Gera o PNG do pódio e retorna o buffer (sem persistir em disco). */
   async generateTopDonatorsImage(
-    topCustomers: TopCustomerDto[],
+    topCustomers: TopCustomerView[],
     month: string,
-  ): Promise<string> {
+  ): Promise<Buffer> {
     const canvas = createCanvas(CANVAS_CONFIG.width, CANVAS_CONFIG.height);
     const ctx = canvas.getContext('2d');
 
-    // Renderizar background
     this.canvasRenderer.applyGradientBackground(ctx);
-
-    // Renderizar título
     this.renderTitle(ctx);
-
-    // Renderizar subtítulo
     this.renderSubtitle(ctx, month);
 
-    // Preparar e ordenar top 3
     const orderedCustomers = this.prepareTopThree(topCustomers);
-
-    // Renderizar jogadores
     await this.renderPlayers(ctx, orderedCustomers);
-
-    // Renderizar footer
     await this.renderFooter(ctx);
 
-    // Salvar imagem
-    return this.saveImage(canvas);
+    this.logger.log('Imagem dos top doadores gerada');
+    return this.toPngBuffer(canvas);
   }
 
-  private renderTitle(ctx: any): void {
+  private renderTitle(ctx: SKRSContext2D): void {
     const fontFamily = this.fontService.getFontFamily(
       this.fontService.MINECRAFT_TEN,
     );
@@ -70,7 +70,7 @@ export class ImageGeneratorService {
     );
   }
 
-  private renderSubtitle(ctx: any, month: string): void {
+  private renderSubtitle(ctx: SKRSContext2D, month: string): void {
     const fontFamily = this.fontService.getFontFamily(
       this.fontService.MONOCRAFT,
     );
@@ -80,13 +80,13 @@ export class ImageGeneratorService {
     ctx.fillText(month, SUBTITLE_CONFIG.position.x, SUBTITLE_CONFIG.position.y);
   }
 
-  private prepareTopThree(topCustomers: TopCustomerDto[]): TopCustomerDto[] {
-    const top3 = [...topCustomers.slice(0, 3)];
+  private prepareTopThree(topCustomers: TopCustomerView[]): TopCustomerView[] {
+    const top3 = topCustomers.slice(0, 3);
 
-    // Preencher com N/A se necessário
+    // Preenche posicoes faltantes com placeholders N/A.
     while (top3.length < 3) {
       top3.push({
-        username: 'N/A',
+        username: PLACEHOLDER_USERNAME,
         spent: 'R$ 0,00',
         purchases: 0,
         identifier: '',
@@ -95,35 +95,36 @@ export class ImageGeneratorService {
       });
     }
 
-    // Ordenar para [2º, 1º, 3º]
+    // Ordena para a disposicao visual do podio: [2º, 1º, 3º].
     return [top3[1], top3[0], top3[2]];
   }
 
   private async renderPlayers(
-    ctx: any,
-    orderedCustomers: TopCustomerDto[],
+    ctx: SKRSContext2D,
+    orderedCustomers: TopCustomerView[],
   ): Promise<void> {
     for (let i = 0; i < POSITIONS.length; i++) {
-      const pos = POSITIONS[i];
+      const position = POSITIONS[i];
       const customer = orderedCustomers[i];
 
-      if (customer.username === 'N/A') continue;
+      if (customer.username === PLACEHOLDER_USERNAME) {
+        continue;
+      }
 
-      await this.renderPlayer(ctx, customer, pos);
+      await this.renderPlayer(ctx, customer, position);
     }
   }
 
   private async renderPlayer(
-    ctx: any,
-    customer: TopCustomerDto,
-    position: any,
+    ctx: SKRSContext2D,
+    customer: TopCustomerView,
+    position: PlayerPosition,
   ): Promise<void> {
     try {
-      // Carregar e desenhar skin
       const headBuffer = await this.skinService.getPlayerSkin(
         customer.username,
       );
-      const headImage = await loadImage(headBuffer);
+      const headImage: Image = await loadImage(headBuffer);
 
       this.canvasRenderer.drawImageWithShadow(
         ctx,
@@ -134,26 +135,29 @@ export class ImageGeneratorService {
         position.size,
       );
 
-      // Renderizar textos
       this.renderPlayerTexts(ctx, customer.username, position);
     } catch (error) {
       this.logger.error(
-        `Erro ao renderizar jogador ${customer.username}:`,
+        `Erro ao renderizar jogador ${customer.username}`,
         error,
       );
     }
   }
 
-  private renderPlayerTexts(ctx: any, username: string, position: any): void {
+  private renderPlayerTexts(
+    ctx: SKRSContext2D,
+    username: string,
+    position: PlayerPosition,
+  ): void {
     const fontFamily = this.fontService.getFontFamily(
       this.fontService.MINECRAFT_TEN,
     );
+    const isFirst = position.rank === 1;
 
-    // Rank
-    const rankY = position.y + position.size / 2 + 40;
-    const rankColor =
-      position.rank === 1 ? RANK_COLORS.white : RANK_COLORS.white;
-    const rankSize = position.rank === 1 ? 85 : 70;
+    const rankY = position.y + position.size / 2 + RANK_TEXT_CONFIG.rankOffsetY;
+    const rankSize = isFirst
+      ? RANK_TEXT_CONFIG.rankSizeFirst
+      : RANK_TEXT_CONFIG.rankSizeOther;
 
     this.canvasRenderer.drawTextWithShadow(
       ctx,
@@ -162,19 +166,15 @@ export class ImageGeneratorService {
       rankY,
       rankSize,
       fontFamily,
-      rankColor,
+      RANK_COLORS.white,
       true,
     );
 
-    // Nome - cor específica por posição
-    const nameY = rankY + 90;
-    const nameSize = position.rank === 1 ? 65 : 56;
-    const nameColor =
-      position.rank === 1
-        ? RANK_COLORS.position1
-        : position.rank === 2
-          ? RANK_COLORS.position2
-          : RANK_COLORS.position3;
+    const nameY = rankY + RANK_TEXT_CONFIG.nameOffsetY;
+    const nameSize = isFirst
+      ? RANK_TEXT_CONFIG.nameSizeFirst
+      : RANK_TEXT_CONFIG.nameSizeOther;
+    const nameColor = this.resolveNameColor(position.rank);
 
     this.canvasRenderer.drawTextWithShadow(
       ctx,
@@ -185,11 +185,18 @@ export class ImageGeneratorService {
       fontFamily,
       nameColor,
       true,
-      2, // letterSpacing de 2px para melhorar legibilidade
+      RANK_TEXT_CONFIG.nameLetterSpacing,
     );
   }
 
-  private async renderFooter(ctx: any): Promise<void> {
+  private resolveNameColor(rank: number): string {
+    if (rank === 1) {
+      return RANK_COLORS.position1;
+    }
+    return rank === 2 ? RANK_COLORS.position2 : RANK_COLORS.position3;
+  }
+
+  private async renderFooter(ctx: SKRSContext2D): Promise<void> {
     const footerY = this.canvasRenderer.drawFooter(
       ctx,
       FOOTER_CONFIG.height,
@@ -198,28 +205,24 @@ export class ImageGeneratorService {
 
     try {
       const logoPath = path.join(process.cwd(), 'assets', 'austv-logo.png');
+      const logo = await loadImage(logoPath);
+      const logoHeight = (logo.height * FOOTER_CONFIG.logoWidth) / logo.width;
+      const logoY = footerY / LOGO_CONFIG.yDivisor;
 
-      if (fs.existsSync(logoPath)) {
-        const logo = await loadImage(logoPath);
-        const logoHeight = (logo.height * FOOTER_CONFIG.logoWidth) / logo.width;
-        const logoY = footerY / 1.07;
-        ctx.drawImage(
-          logo,
-          CANVAS_CONFIG.width / 2 - FOOTER_CONFIG.logoWidth / 2,
-          logoY,
-          FOOTER_CONFIG.logoWidth,
-          logoHeight,
-        );
-      } else {
-        this.renderFallbackLogo(ctx, footerY);
-      }
-    } catch (error) {
+      ctx.drawImage(
+        logo,
+        CANVAS_CONFIG.width / 2 - FOOTER_CONFIG.logoWidth / 2,
+        logoY,
+        FOOTER_CONFIG.logoWidth,
+        logoHeight,
+      );
+    } catch {
       this.logger.warn('Logo não encontrada, usando texto');
       this.renderFallbackLogo(ctx, footerY);
     }
   }
 
-  private renderFallbackLogo(ctx: any, footerY: number): void {
+  private renderFallbackLogo(ctx: SKRSContext2D, footerY: number): void {
     const fontFamily = this.fontService.getFontFamily(
       this.fontService.MINECRAFT_TEN,
     );
@@ -227,26 +230,15 @@ export class ImageGeneratorService {
       ctx,
       'AUSTV',
       CANVAS_CONFIG.width / 2,
-      footerY + FOOTER_CONFIG.height / 5,
-      60,
+      footerY + FOOTER_CONFIG.height / LOGO_CONFIG.fallbackTextDivisor,
+      LOGO_CONFIG.fallbackTextSize,
       fontFamily,
       '#FFFFFF',
       false,
     );
   }
 
-  private saveImage(canvas: any): string {
-    const outputPath = path.join(process.cwd(), 'temp', 'top-donators.png');
-    const dir = path.dirname(outputPath);
-
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-
-    const buffer = canvas.toBuffer('image/png');
-    fs.writeFileSync(outputPath, buffer);
-
-    this.logger.log(`Imagem gerada: ${outputPath}`);
-    return outputPath;
+  private toPngBuffer(canvas: Canvas): Buffer {
+    return canvas.toBuffer('image/png');
   }
 }

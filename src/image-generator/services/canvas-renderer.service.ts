@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SKRSContext2D } from '@napi-rs/canvas';
+import { Image, SKRSContext2D } from '@napi-rs/canvas';
 import {
   CANVAS_CONFIG,
   GRADIENT_COLORS,
@@ -40,14 +40,14 @@ export class CanvasRendererService {
 
     ctx.fillStyle = color;
     ctx.fillText(text, x, y);
-    
+
     // Reset letterSpacing
     ctx.letterSpacing = '0px';
   }
 
   drawImageWithShadow(
     ctx: SKRSContext2D,
-    image: any,
+    image: Image,
     x: number,
     y: number,
     width: number,
@@ -72,7 +72,11 @@ export class CanvasRendererService {
     ctx.restore();
   }
 
-  drawFooter(ctx: SKRSContext2D, height: number, backgroundColor: string): number {
+  drawFooter(
+    ctx: SKRSContext2D,
+    height: number,
+    backgroundColor: string,
+  ): number {
     const footerY = CANVAS_CONFIG.height - height;
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, footerY, CANVAS_CONFIG.width, height);
