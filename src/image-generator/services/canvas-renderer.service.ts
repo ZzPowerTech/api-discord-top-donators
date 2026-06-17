@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { SKRSContext2D } from '@napi-rs/canvas';
+import { Image, SKRSContext2D } from '@napi-rs/canvas';
 import {
   CANVAS_CONFIG,
   GRADIENT_COLORS,
@@ -47,7 +47,7 @@ export class CanvasRendererService {
 
   drawImageWithShadow(
     ctx: SKRSContext2D,
-    image: any,
+    image: Image,
     x: number,
     y: number,
     width: number,

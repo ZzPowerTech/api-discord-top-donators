@@ -27,16 +27,14 @@ export default tseslint.config(
   },
   {
     rules: {
-      // Em transicao para tipagem forte: o uso de 'any' e os acessos inseguros
-      // derivados ficam visiveis como warning durante o refactor incremental.
-      // Serao promovidos a 'error' no PR final, quando todo 'any' tiver sido removido.
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-floating-promises': 'warn',
-      '@typescript-eslint/no-unsafe-argument': 'warn',
-      '@typescript-eslint/no-unsafe-assignment': 'warn',
-      '@typescript-eslint/no-unsafe-member-access': 'warn',
-      '@typescript-eslint/no-unsafe-call': 'warn',
-      '@typescript-eslint/no-unsafe-return': 'warn',
+      // Tipagem forte: nenhum 'any' nem acesso inseguro no codigo de producao.
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-floating-promises': 'error',
+      '@typescript-eslint/no-unsafe-argument': 'error',
+      '@typescript-eslint/no-unsafe-assignment': 'error',
+      '@typescript-eslint/no-unsafe-member-access': 'error',
+      '@typescript-eslint/no-unsafe-call': 'error',
+      '@typescript-eslint/no-unsafe-return': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -49,10 +47,16 @@ export default tseslint.config(
     },
   },
   {
-    // Testes mockam metodos "unbound" do Jest intencionalmente e usam casts.
+    // Testes mockam o Jest intencionalmente (valores `any`, metodos unbound).
     files: ['**/*.spec.ts', 'test/**/*.ts'],
     rules: {
       '@typescript-eslint/unbound-method': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
     },
   },
 );

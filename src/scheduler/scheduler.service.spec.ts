@@ -25,7 +25,7 @@ describe('SchedulerService (orquestracao)', () => {
   beforeEach(() => {
     getTopCustomersFromPreviousMonth = jest.fn();
     getTopCustomers = jest.fn();
-    generateTopDonatorsImage = jest.fn().mockResolvedValue('/tmp/img.png');
+    generateTopDonatorsImage = jest.fn().mockResolvedValue(Buffer.from('png'));
     sendImageWithEmbed = jest.fn().mockResolvedValue(undefined);
 
     const centralCart = {
@@ -57,7 +57,7 @@ describe('SchedulerService (orquestracao)', () => {
     ];
     expect(customersArg).toHaveLength(3);
     expect(sendImageWithEmbed).toHaveBeenCalledWith(
-      '/tmp/img.png',
+      expect.any(Buffer),
       expect.any(Object),
     );
   });

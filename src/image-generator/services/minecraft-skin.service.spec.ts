@@ -73,9 +73,13 @@ describe('MinecraftSkinService.getPlayerSkin (caracterizacao do fallback)', () =
     expect(Buffer.from(result)).toEqual(crafatarBuf);
   });
 
-  it('retorna Buffer vazio quando TODAS as fontes falham (a corrigir no PR6)', async () => {
+  it('retorna um placeholder PNG valido quando todas as fontes falham', async () => {
     mockedGet.mockRejectedValue(new Error('tudo offline'));
     const result = await service.getPlayerSkin('Player');
-    expect(result.length).toBe(0);
+    expect(result.length).toBeGreaterThan(0);
+    // PNG magic bytes (89 50 4E 47)
+    expect(result.subarray(0, 4)).toEqual(
+      Buffer.from([0x89, 0x50, 0x4e, 0x47]),
+    );
   });
 });

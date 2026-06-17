@@ -64,3 +64,21 @@ export const RANK_COLORS = {
   position2: '#CFDBE0',
   position3: '#FFBAAC',
 } as const;
+
+export const RANK_TEXT_CONFIG = {
+  rankOffsetY: 40,
+  nameOffsetY: 90,
+  rankSizeFirst: 85,
+  rankSizeOther: 70,
+  nameSizeFirst: 65,
+  nameSizeOther: 56,
+  nameLetterSpacing: 2,
+} as const;
+
+export const LOGO_CONFIG = {
+  yDivisor: 1.07,
+  fallbackTextDivisor: 5,
+  fallbackTextSize: 60,
+} as const;
+
+export const PLACEHOLDER_USERNAME = 'N/A';

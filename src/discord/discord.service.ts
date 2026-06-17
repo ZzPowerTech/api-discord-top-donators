@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { APIEmbed } from 'discord-api-types/v10';
 import { firstValueFrom } from 'rxjs';
-import { readFile } from 'fs/promises';
 import * as FormData from 'form-data';
 import { config } from '../config/config';
 import { buildPostLink } from './post-link.builder';
@@ -18,13 +17,14 @@ export class DiscordService {
 
   constructor(private readonly httpService: HttpService) {}
 
-  async sendImageWithEmbed(imagePath: string, embed: APIEmbed): Promise<void> {
+  async sendImageWithEmbed(
+    imageBuffer: Buffer,
+    embed: APIEmbed,
+  ): Promise<void> {
     const webhookUrl = config.discord.webhookUrl;
     if (!webhookUrl) {
       throw new Error('Discord webhook URL não configurado');
     }
-
-    const imageBuffer = await readFile(imagePath);
 
     const formData = new FormData();
     formData.append('payload_json', JSON.stringify({ embeds: [embed] }));

@@ -72,13 +72,14 @@ export class SchedulerService {
     }
 
     const top = customers.slice(0, TOP_DONATORS_LIMIT);
-    const imagePath = await this.imageGeneratorService.generateTopDonatorsImage(
-      top,
-      displayMonth,
-    );
+    const imageBuffer =
+      await this.imageGeneratorService.generateTopDonatorsImage(
+        top,
+        displayMonth,
+      );
     const embed = this.createEmbed(displayMonth);
 
-    await this.discordService.sendImageWithEmbed(imagePath, embed);
+    await this.discordService.sendImageWithEmbed(imageBuffer, embed);
     this.logger.log('Top doadores enviados com sucesso!');
   }
 
