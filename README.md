@@ -127,21 +127,65 @@ As imagens são geradas com:
 
 ## 📡 Endpoints
 
-### GET `/scheduler/trigger-monthly-post`
+### Scheduler
 
-Executa manualmente o envio do ranking mensal.
+#### POST `/scheduler/send-top-donators`
+
+Dispara manualmente o envio do ranking mensal (top 3 doadores do mês anterior).
 
 **Resposta:**
 
 ```json
 {
-  "message": "Post mensal executado com sucesso"
+  "message": "Top doadores enviados para o Discord!"
 }
 ```
 
-### POST `/webhook`
+#### POST `/scheduler/send-top-donators-custom`
 
-Endpoint para receber webhooks externos.
+Envia o ranking de um período customizado.
+
+**Body:**
+
+```json
+{
+  "from": "2025-01-01",
+  "to": "2025-01-31",
+  "monthName": "Janeiro 2025"
+}
+```
+
+#### POST `/scheduler/send-latest-post`
+
+Reenvia o post mais recente do blog para o Discord.
+
+#### POST `/scheduler/check-new-posts`
+
+Força a verificação imediata de novos posts.
+
+#### GET `/scheduler/test-posts-api?storeId=`
+
+Endpoint de debug para inspecionar a resposta da API de posts da Central Cart.
+
+### Central Cart API
+
+#### GET `/central-cart-api/top-customers?from=&to=`
+
+Retorna os top clientes de um período (datas no formato `YYYY-MM-DD`).
+
+#### GET `/central-cart-api/top-customers/previous-month`
+
+Retorna os top clientes do mês anterior.
+
+### Webhook
+
+#### POST `/webhook/centralcart/post-created`
+
+Recebe o webhook externo da Central Cart quando um novo post é criado e o publica no Discord.
+
+#### POST `/webhook/test`
+
+Envia um post de teste para o Discord.
 
 ## 🧪 Testes
 
