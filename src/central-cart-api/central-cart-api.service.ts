@@ -2,9 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { config } from '../config/config';
-import { TopCustomersResponse, TopCustomerDto } from './dto/top-customer.dto';
+import { TopCustomersResponse, TopCustomerView } from './dto/top-customer.dto';
 import { PostDto } from './dto/post.dto';
 import { getErrorMessage } from '../common/utils/get-error-message';
+import { parseBRL } from '../common/utils/parse-brl';
+import { getPreviousMonthRange } from '../common/utils/month-range';
 
 @Injectable()
 export class CentralCartApiService {
@@ -12,7 +14,7 @@ export class CentralCartApiService {
 
   constructor(private readonly httpService: HttpService) {}
 
-  async getTopCustomers(from: string, to: string): Promise<TopCustomerDto[]> {
+  async getTopCustomers(from: string, to: string): Promise<TopCustomerView[]> {
     try {
       const url = `${config.centralCart.apiUrl}/app/widget/top_customers`;
       this.logger.log(`Buscando top customers: ${from} a ${to}`);
@@ -26,19 +28,16 @@ export class CentralCartApiService {
         }),
       );
 
-      const customers = response.data.data || [];
+      const customers = response.data.data ?? [];
 
-      // Add position and convert spent to numeric for sorting/display
-      const customersWithPosition = customers.map((customer, index) => {
-        // Converter "R$ 1.139,99" para número
-        const spentNumeric = this.convertBRLToNumber(customer.spent);
-
-        return {
+      // Enriquece com posição (1-based) e valor numérico para ordenação/exibição.
+      const customersWithPosition: TopCustomerView[] = customers.map(
+        (customer, index) => ({
           ...customer,
           position: index + 1,
-          totalNumeric: spentNumeric,
-        };
-      });
+          totalNumeric: parseBRL(customer.spent),
+        }),
+      );
 
       this.logger.log(`${customers.length} clientes encontrados`);
       return customersWithPosition;
@@ -48,37 +47,8 @@ export class CentralCartApiService {
     }
   }
 
-  private convertBRLToNumber(value: string): number {
-    // Remove "R$" e espaços, substitui . por nada e , por .
-    // "R$ 1.139,99" -> "1139.99"
-    return parseFloat(
-      value
-        .replace('R$', '')
-        .replace(/\s/g, '')
-        .replace(/\./g, '')
-        .replace(',', '.'),
-    );
-  }
-
-  async getTopCustomersFromPreviousMonth(): Promise<TopCustomerDto[]> {
-    const now = new Date();
-    const firstDayOfCurrentMonth = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      1,
-    );
-    const lastDayOfPreviousMonth = new Date(
-      firstDayOfCurrentMonth.getTime() - 1,
-    );
-    const firstDayOfPreviousMonth = new Date(
-      lastDayOfPreviousMonth.getFullYear(),
-      lastDayOfPreviousMonth.getMonth(),
-      1,
-    );
-
-    const from = firstDayOfPreviousMonth.toISOString().split('T')[0];
-    const to = lastDayOfPreviousMonth.toISOString().split('T')[0];
-
+  async getTopCustomersFromPreviousMonth(): Promise<TopCustomerView[]> {
+    const { from, to } = getPreviousMonthRange(new Date());
     return this.getTopCustomers(from, to);
   }
 
@@ -103,10 +73,9 @@ export class CentralCartApiService {
         }),
       );
 
-      // A API pode retornar direto ou em { data: [] }
-      const posts = Array.isArray(response.data)
-        ? response.data
-        : (response.data as any).data || [];
+      // A API pode retornar direto (array) ou no envelope { data: [] }.
+      const data = response.data;
+      const posts = Array.isArray(data) ? data : (data.data ?? []);
 
       this.logger.log(`${posts.length} posts encontrados`);
       return posts;

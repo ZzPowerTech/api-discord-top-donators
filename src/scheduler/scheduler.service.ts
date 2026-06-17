@@ -1,8 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { APIEmbed } from 'discord-api-types/v10';
 import { CentralCartApiService } from '../central-cart-api/central-cart-api.service';
 import { DiscordService } from '../discord/discord.service';
 import { ImageGeneratorService } from '../image-generator/image-generator.service';
+import { TopCustomerView } from '../central-cart-api/dto/top-customer.dto';
+import {
+  APP_TIMEZONE,
+  getPreviousMonthLabel,
+} from '../common/utils/month-range';
+
+const TOP_DONATORS_LIMIT = 3;
+const MONTHLY_CRON = '0 0 1 * *'; // dia 1 de cada mes, 00:00
 
 @Injectable()
 export class SchedulerService {
@@ -14,7 +23,66 @@ export class SchedulerService {
     private readonly imageGeneratorService: ImageGeneratorService,
   ) {}
 
-  private createEmbed(displayMonth: string) {
+  // Executa todo dia 1 de cada mes as 00:00 (America/Sao_Paulo).
+  @Cron(MONTHLY_CRON, { timeZone: APP_TIMEZONE })
+  async sendMonthlyTopDonators(): Promise<void> {
+    try {
+      this.logger.log('Iniciando envio dos top doadores do mês anterior');
+
+      const topCustomers =
+        await this.centralCartApiService.getTopCustomersFromPreviousMonth();
+      const displayMonth = getPreviousMonthLabel(new Date());
+
+      await this.dispatchTopDonators(topCustomers, displayMonth);
+    } catch (error) {
+      // O cron engole a excecao para nao derrubar o agendador.
+      this.logger.error('Erro ao enviar top doadores', error);
+    }
+  }
+
+  // Disparo manual com periodo customizado; propaga erro para o controller.
+  async sendTopDonatorsCustomDate(
+    from: string,
+    to: string,
+    monthName?: string,
+  ): Promise<void> {
+    this.logger.log(`Enviando top doadores de ${from} a ${to}`);
+
+    const topCustomers = await this.centralCartApiService.getTopCustomers(
+      from,
+      to,
+    );
+    const displayMonth = monthName ?? `${from} a ${to}`;
+
+    await this.dispatchTopDonators(topCustomers, displayMonth);
+  }
+
+  async sendTopDonatorsNow(): Promise<void> {
+    return this.sendMonthlyTopDonators();
+  }
+
+  // Fluxo comum: limita ao top N, gera a imagem, monta o embed e envia.
+  private async dispatchTopDonators(
+    customers: TopCustomerView[],
+    displayMonth: string,
+  ): Promise<void> {
+    if (customers.length === 0) {
+      this.logger.warn('Nenhum doador encontrado');
+      return;
+    }
+
+    const top = customers.slice(0, TOP_DONATORS_LIMIT);
+    const imagePath = await this.imageGeneratorService.generateTopDonatorsImage(
+      top,
+      displayMonth,
+    );
+    const embed = this.createEmbed(displayMonth);
+
+    await this.discordService.sendImageWithEmbed(imagePath, embed);
+    this.logger.log('Top doadores enviados com sucesso!');
+  }
+
+  private createEmbed(displayMonth: string): APIEmbed {
     return {
       title: `🏆 Top 3 Doadores - ${displayMonth}`,
       description:
@@ -28,105 +96,5 @@ export class SchedulerService {
         text: 'Seu apoio faz toda a diferença! 🚀',
       },
     };
-  }
-
-  // Executa todo dia 1° de cada mês às 00:00
-  @Cron('0 0 1 * *', {
-    timeZone: 'America/Sao_Paulo',
-  })
-  async sendMonthlyTopDonators() {
-    try {
-      this.logger.log('Iniciando envio dos top doadores do mês anterior');
-
-      // Buscar top customers do mês anterior
-      const topCustomers =
-        await this.centralCartApiService.getTopCustomersFromPreviousMonth();
-
-      if (!topCustomers || topCustomers.length === 0) {
-        this.logger.warn('Nenhum doador encontrado');
-        return;
-      }
-
-      // Pegar apenas os 3 primeiros
-      const top3 = topCustomers.slice(0, 3);
-
-      // Obter nome do mês anterior
-      const now = new Date();
-      const previousMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      const monthName = previousMonth.toLocaleDateString('pt-BR', {
-        month: 'long',
-        year: 'numeric',
-      });
-
-      // Gerar imagem
-      const imagePath =
-        await this.imageGeneratorService.generateTopDonatorsImage(
-          top3,
-          monthName.charAt(0).toUpperCase() + monthName.slice(1),
-        );
-
-      // Criar embed para Discord
-      const embed = this.createEmbed(
-        monthName.charAt(0).toUpperCase() + monthName.slice(1),
-      );
-
-      // Enviar para Discord
-      await this.discordService.sendImageWithEmbed(imagePath, embed);
-
-      this.logger.log('Top doadores enviados com sucesso!');
-    } catch (error) {
-      this.logger.error('Erro ao enviar top doadores', error);
-    }
-  }
-
-  // Método para enviar com data customizada
-  async sendTopDonatorsCustomDate(
-    from: string,
-    to: string,
-    monthName?: string,
-  ) {
-    try {
-      this.logger.log(`Enviando top doadores de ${from} a ${to}`);
-
-      // Buscar top customers do período especificado
-      const topCustomers = await this.centralCartApiService.getTopCustomers(
-        from,
-        to,
-      );
-
-      if (!topCustomers || topCustomers.length === 0) {
-        this.logger.warn('Nenhum doador encontrado');
-        return;
-      }
-
-      // Pegar apenas os 3 primeiros
-      const top3 = topCustomers.slice(0, 3);
-
-      // Usar nome do mês fornecido ou gerar automaticamente
-      const displayMonth = monthName || `${from} a ${to}`;
-
-      // Gerar imagem
-      const imagePath =
-        await this.imageGeneratorService.generateTopDonatorsImage(
-          top3,
-          displayMonth,
-        );
-
-      // Criar embed para Discord
-      const embed = this.createEmbed(displayMonth);
-
-      // Enviar para Discord
-      await this.discordService.sendImageWithEmbed(imagePath, embed);
-
-      this.logger.log('Top doadores enviados com sucesso!');
-    } catch (error) {
-      this.logger.error('Erro ao enviar top doadores', error);
-      throw error;
-    }
-  }
-
-  // Método para testar manualmente
-  async sendTopDonatorsNow() {
-    return this.sendMonthlyTopDonators();
   }
 }
