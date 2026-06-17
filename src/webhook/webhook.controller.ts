@@ -1,8 +1,10 @@
-import { Controller, Post, Body, Headers, Logger } from '@nestjs/common';
+import { Controller, Post, Body, Logger, UseGuards } from '@nestjs/common';
 import { DiscordService } from '../discord/discord.service';
 import { getErrorMessage } from '../common/utils/get-error-message';
 import { CentralCartPostWebhookDto } from './dto/central-cart-post-webhook.dto';
 import { TestWebhookDto } from './dto/test-webhook.dto';
+import { WebhookSignatureGuard } from '../common/guards/webhook-signature.guard';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
 
 @Controller('webhook')
 export class WebhookController {
@@ -11,10 +13,8 @@ export class WebhookController {
   constructor(private readonly discordService: DiscordService) {}
 
   @Post('centralcart/post-created')
-  async handlePostCreated(
-    @Body() dto: CentralCartPostWebhookDto,
-    @Headers('x-centralcart-signature') _signature?: string,
-  ) {
+  @UseGuards(WebhookSignatureGuard)
+  async handlePostCreated(@Body() dto: CentralCartPostWebhookDto) {
     try {
       this.logger.log('Webhook recebido da CentralCart');
 
@@ -44,6 +44,7 @@ export class WebhookController {
   }
 
   @Post('test')
+  @UseGuards(ApiKeyGuard)
   async testWebhook(@Body() dto: TestWebhookDto) {
     this.logger.log('Teste de webhook');
 

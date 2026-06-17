@@ -1,11 +1,13 @@
-import { Controller, Post, Body, Get, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, Query, UseGuards } from '@nestjs/common';
 import { SchedulerService } from './scheduler.service';
 import { PostsMonitorService } from './posts-monitor.service';
 import { CentralCartApiService } from '../central-cart-api/central-cart-api.service';
 import { getErrorMessage } from '../common/utils/get-error-message';
 import { SendTopDonatorsCustomDto } from './dto/send-top-donators-custom.dto';
+import { ApiKeyGuard } from '../common/guards/api-key.guard';
 
 @Controller('scheduler')
+@UseGuards(ApiKeyGuard)
 export class SchedulerController {
   constructor(
     private readonly schedulerService: SchedulerService,

@@ -9,6 +9,9 @@ export const config = {
     get version(): string {
       return process.env.APP_VERSION ?? '0.0.0';
     },
+    get apiKey() {
+      return process.env.SCHEDULER_API_KEY;
+    },
   },
   centralCart: {
     get apiUrl() {
@@ -21,6 +24,9 @@ export const config = {
     },
     get storeId() {
       return process.env.CENTRAL_CART_STORE_ID || 'loja.austv.net';
+    },
+    get webhookSecret() {
+      return process.env.CENTRALCART_WEBHOOK_SECRET;
     },
   },
   discord: {

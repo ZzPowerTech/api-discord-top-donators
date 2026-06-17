@@ -46,6 +46,14 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  SCHEDULER_API_KEY?: string;
+
+  @IsOptional()
+  @IsString()
+  CENTRALCART_WEBHOOK_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
   PORT?: string;
 
   @IsOptional()
