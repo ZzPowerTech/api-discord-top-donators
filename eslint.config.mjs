@@ -48,4 +48,11 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Testes mockam metodos "unbound" do Jest intencionalmente e usam casts.
+    files: ['**/*.spec.ts', 'test/**/*.ts'],
+    rules: {
+      '@typescript-eslint/unbound-method': 'off',
+    },
+  },
 );
