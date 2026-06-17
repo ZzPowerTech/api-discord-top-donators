@@ -34,6 +34,10 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  DISCORD_UPDATES_ROLE_ID?: string;
+
+  @IsOptional()
+  @IsString()
   DISCORD_CHANNEL_ID?: string;
 
   @IsOptional()

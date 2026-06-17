@@ -30,6 +30,9 @@ export const config = {
     get updatesWebhookUrl() {
       return process.env.DISCORD_UPDATES_WEBHOOK_URL;
     },
+    get updatesRoleId() {
+      return process.env.DISCORD_UPDATES_ROLE_ID;
+    },
     get channelId() {
       return process.env.DISCORD_CHANNEL_ID;
     },

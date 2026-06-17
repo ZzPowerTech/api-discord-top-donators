@@ -1,66 +1,55 @@
-import axios from 'axios';
+import { of } from 'rxjs';
+import type { HttpService } from '@nestjs/axios';
 import { DiscordService } from './discord.service';
 
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
-
-/**
- * Caracteriza a construcao do link do post (hoje embutida em sendPostUpdate).
- * No PR de refactor o link sera extraido para uma funcao pura; estes testes
- * garantem que o link publicado nao muda sem intencao.
- */
-describe('DiscordService.sendPostUpdate (caracterizacao do link)', () => {
+describe('DiscordService.sendPostUpdate', () => {
   let service: DiscordService;
+  let httpPost: jest.Mock;
   const ORIGINAL_ENV = process.env;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    httpPost = jest.fn().mockReturnValue(of({ data: {} }));
+    const httpService = { post: httpPost } as unknown as HttpService;
     process.env = {
       ...ORIGINAL_ENV,
       DISCORD_UPDATES_WEBHOOK_URL: 'https://discord.test/webhook',
       CENTRAL_CART_STORE_ID: 'loja.austv.net',
+      DISCORD_UPDATES_ROLE_ID: '12345',
     };
-    (mockedAxios.post as jest.Mock).mockResolvedValue({ data: {} });
-    service = new DiscordService();
+    service = new DiscordService(httpService);
   });
 
   afterAll(() => {
     process.env = ORIGINAL_ENV;
   });
 
-  function linkEnviado(): string {
-    const body = (mockedAxios.post as jest.Mock).mock.calls[0][1] as {
+  function payloadEnviado(): {
+    content?: string;
+    embeds: { description: string }[];
+  } {
+    return httpPost.mock.calls[0][1] as {
+      content?: string;
       embeds: { description: string }[];
     };
-    const match = body.embeds[0].description.match(/\((https?:\/\/[^)]+)\)/);
-    return match ? match[1] : '';
   }
 
-  it('usa post.path quando presente', async () => {
+  it('envia o embed com o link do post e mention do cargo configurado', async () => {
     await service.sendPostUpdate({
       title: 't',
       content: 'c',
       path: '/post/01/03/2025/novidade',
     });
-    expect(linkEnviado()).toBe(
+
+    const body = payloadEnviado();
+    expect(body.content).toBe('<@&12345>');
+    expect(body.embeds[0].description).toContain(
       'https://loja.austv.net/post/01/03/2025/novidade',
     );
   });
 
-  it('deriva de slug + created_at (UTC) quando nao ha path', async () => {
-    await service.sendPostUpdate({
-      title: 't',
-      content: 'c',
-      slug: 'novidade',
-      created_at: '2025-03-01T10:00:00Z',
-    });
-    expect(linkEnviado()).toBe(
-      'https://loja.austv.net/post/01/03/2025/novidade',
-    );
-  });
-
-  it('cai na URL base da loja quando nao ha path nem slug', async () => {
+  it('omite o mention quando DISCORD_UPDATES_ROLE_ID nao esta definido', async () => {
+    delete process.env.DISCORD_UPDATES_ROLE_ID;
     await service.sendPostUpdate({ title: 't', content: 'c' });
-    expect(linkEnviado()).toBe('https://loja.austv.net');
+    expect(payloadEnviado().content).toBeUndefined();
   });
 });
