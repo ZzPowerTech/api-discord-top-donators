@@ -1,4 +1,15 @@
 export const config = {
+  app: {
+    get port(): number {
+      const parsed = process.env.PORT
+        ? Number.parseInt(process.env.PORT, 10)
+        : NaN;
+      return Number.isNaN(parsed) ? 3333 : parsed;
+    },
+    get version(): string {
+      return process.env.APP_VERSION ?? '0.0.0';
+    },
+  },
   centralCart: {
     get apiUrl() {
       return (
