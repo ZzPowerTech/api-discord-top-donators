@@ -6,14 +6,8 @@ import { AppModule } from './../src/app.module';
 
 describe('App (e2e)', () => {
   let app: INestApplication<App>;
+  // Mesma chave definida em test/setup-e2e.ts (carregado antes dos imports).
   const API_KEY = 'test-key';
-
-  beforeAll(() => {
-    // Variaveis minimas para o boot (validacao de env) e para a ApiKeyGuard.
-    process.env.CENTRAL_CART_API_TOKEN ??= 'test-token';
-    process.env.DISCORD_WEBHOOK_URL ??= 'https://discord.test/webhook';
-    process.env.SCHEDULER_API_KEY ??= API_KEY;
-  });
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
