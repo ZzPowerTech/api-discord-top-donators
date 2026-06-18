@@ -228,14 +228,34 @@ jobs:
             set -e
             APP_DIR="${{ secrets.VPS_APP_DIR }}"
             VERSION="${{ needs.release.outputs.version }}"
+            SERVICE="api-site"
             CONTAINER="${{ env.APP_CONTAINER_NAME }}"
+            COMPOSE="docker compose -f docker-compose.yml"
 
             cd "$APP_DIR"
             echo "Diretorio: $(pwd)"
 
-            if [ ! -f .env ]; then
-              echo "Arquivo .env nao encontrado em $APP_DIR"; exit 1
+            # O scp envia docker-compose.yml; remove um docker-compose.yaml legado
+            # para que ele nao tenha precedencia sobre o arquivo versionado.
+            if [ -f docker-compose.yml ] && [ -f docker-compose.yaml ]; then
+              echo "Removendo docker-compose.yaml legado em favor do .yml versionado."
+              rm -f docker-compose.yaml
             fi
+
+            if [ ! -f .env ]; then
+              echo "::error:: .env nao encontrado em $APP_DIR. Configure os segredos antes do deploy."
+              exit 1
+            fi
+
+            # Rede de seguranca: nao recria o container se faltar config obrigatoria,
+            # preservando a versao em execucao em vez de derrubar a producao.
+            for VAR in CENTRAL_CART_API_TOKEN DISCORD_WEBHOOK_URL; do
+              VALUE=$(grep "^$VAR=" .env | cut -d= -f2- || true)
+              if [ -z "$VALUE" ]; then
+                echo "::error:: $VAR ausente/vazia no .env. Abortando sem tocar no container atual."
+                exit 1
+              fi
+            done
 
             # Backup do .env para permitir rollback.
             cp .env .env.bak
@@ -250,8 +270,8 @@ jobs:
             fi
 
             echo "Atualizando container..."
-            docker compose pull "$CONTAINER"
-            docker compose up -d "$CONTAINER"
+            $COMPOSE pull "$SERVICE"
+            $COMPOSE up -d "$SERVICE"
 
             # Aguarda o container ficar saudavel (HEALTHCHECK da imagem).
             HEALTHY=0
@@ -265,8 +285,8 @@ jobs:
             if [ "$HEALTHY" != "1" ]; then
               echo "::error:: Healthcheck falhou. Revertendo para a versao anterior."
               cp .env.bak .env
-              docker compose pull "$CONTAINER" || true
-              docker compose up -d "$CONTAINER" || true
+              $COMPOSE pull "$SERVICE" || true
+              $COMPOSE up -d "$SERVICE" || true
               exit 1
             fi
 
