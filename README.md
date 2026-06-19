@@ -171,11 +171,11 @@ Endpoint de debug para inspecionar a resposta da API de posts da Central Cart.
 
 #### GET `/central-cart-api/top-customers?from=&to=`
 
-Retorna os top clientes de um período (datas no formato `YYYY-MM-DD`).
+Retorna os top clientes de um período (datas no formato `YYYY-MM-DD`). Requer header `x-api-key`.
 
 #### GET `/central-cart-api/top-customers/previous-month`
 
-Retorna os top clientes do mês anterior.
+Retorna os top clientes do mês anterior. Requer header `x-api-key`.
 
 ### Webhook
 
@@ -183,9 +183,58 @@ Retorna os top clientes do mês anterior.
 
 Recebe o webhook externo da Central Cart quando um novo post é criado e o publica no Discord.
 
+#### POST `/webhook/centralcart/order`
+
+Recebe o evento `ORDER_APPROVED` da Central Cart e processa a atribuição de cargo por meta de doação. Protegido por HMAC-SHA256 (`CENTRALCART_ORDER_WEBHOOK_SECRET`).
+
 #### POST `/webhook/test`
 
 Envia um post de teste para o Discord.
+
+### Donations
+
+#### POST `/donations/sync`
+
+Sync/backfill manual de cargos de doação para um membro. Requer header `x-api-key`.
+
+**Body:**
+
+```json
+{
+  "discordId": "123456789",
+  "email": "opcional@exemplo.com",
+  "identifier": "nick_opcional"
+}
+```
+
+## Cargos por meta de doação
+
+### Fluxo
+
+A Central Cart dispara o webhook `ORDER_APPROVED` para `POST /webhook/centralcart/order`. A API valida a assinatura HMAC-SHA256 do payload, consulta o total acumulado do comprador em `GET /app/user_spent` (campo `total_net_received`) e determina o tier correspondente. Se o membro subiu de tier, o cargo anterior de meta é removido e o novo é atribuído (modelo substitutivo — apenas o tier mais alto fica). O membro também recebe uma DM de parabéns. A feature é stateless (sem banco de dados).
+
+### Metas
+
+| Tier | Valor acumulado | Cargo         |
+|------|-----------------|---------------|
+| 1    | R$ 60           | `DONATION_TIER_1_ROLE_ID` |
+| 2    | R$ 180          | `DONATION_TIER_2_ROLE_ID` |
+| 3    | R$ 500          | `DONATION_TIER_3_ROLE_ID` |
+
+### Endpoints
+
+- `POST /webhook/centralcart/order` — recebe o evento `ORDER_APPROVED` da Central Cart; protegido por HMAC-SHA256 (`CENTRALCART_ORDER_WEBHOOK_SECRET`).
+- `POST /donations/sync` — sync/backfill manual de um membro; requer header `x-api-key` (admin). Body: `{ discordId, email?, identifier? }`.
+
+### Pré-requisitos do bot
+
+1. Bot com permissão **Manage Roles** no servidor.
+2. O cargo do bot deve estar **acima** dos três cargos de meta na hierarquia do Discord.
+3. Variáveis de ambiente: `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID`, `CENTRALCART_ORDER_WEBHOOK_SECRET` (secret gerado no painel da Central Cart) e, opcionalmente, os três `DONATION_TIER_*_ROLE_ID`.
+
+### Opt-in
+
+A feature é opt-in: sem as envs `DISCORD_BOT_TOKEN`, `DISCORD_GUILD_ID` e `CENTRALCART_ORDER_WEBHOOK_SECRET` definidas, o módulo fica inerte e não quebra o restante da aplicação.
 
 ## 🧪 Testes
 
