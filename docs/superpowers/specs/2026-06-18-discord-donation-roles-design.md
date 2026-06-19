@@ -2,7 +2,7 @@
 
 - **Data:** 2026-06-18
 - **Autor:** Murilo (AusTV) + Claude Code
-- **Status:** Aprovado (aguardando revisão do spec)
+- **Status:** Aprovado (2026-06-18) — inclui requisito de hardening de segurança das rotas. Bot do Discord já criado.
 - **Projeto:** `api-discord-top-donators` (NestJS 11)
 
 ## 1. Objetivo
@@ -157,7 +157,31 @@ Headers de segurança: `x-centralcart-signature` (hex HMAC-SHA256), `x-centralca
 Embed: título "🎉 Meta de doação atingida!", descrição parabenizando, citando o **valor do tier**
 (R$ 60 / 180 / 500) e o **nome do cargo** desbloqueado, cor por tier. Mensagem em português.
 
-## 6. Segurança — `CentralCartHmacGuard` (novo)
+## 6. Segurança
+
+**Princípio (requisito do Murilo): nenhuma rota sem proteção, fail-secure por padrão.** Nenhuma rota
+pode permitir, se vazar, consultar recebimentos/valores da loja ou disparar ações privilegiadas
+(conceder cargos, mexer em doadores). Toda rota nova nasce com guard; rotas existentes que expõem
+recebimentos passam a ser protegidas também (defense-in-depth).
+
+### 6.1 Matriz de proteção de rotas
+
+| Rota | Tipo | Guard | Modo de falha |
+|------|------|-------|---------------|
+| `POST /webhook/centralcart/order` | Webhook (novo) | `CentralCartHmacGuard` | **Fail-secure**: sem secret → bloqueia; assinatura/timestamp inválidos → 401 |
+| `POST /donations/sync` | Admin (novo) | `ApiKeyGuard` | Fail-secure (503 sem `SCHEDULER_API_KEY`; 401 inválida) |
+| `GET /donations/:discordId` *(se exposto)* | Admin/leitura (novo) | `ApiKeyGuard` | Fail-secure |
+| `GET /central-cart-api/top-customers` | **Existente, hoje SEM auth** | **Adicionar `ApiKeyGuard`** | Fail-secure — expõe quem gastou e quanto (recebimentos) |
+| `GET /central-cart-api/top-customers/previous-month` | **Existente, hoje SEM auth** | **Adicionar `ApiKeyGuard`** | Fail-secure — idem acima |
+
+> **Mudança de comportamento:** as duas rotas de `top-customers` passarão a **exigir** `x-api-key`.
+> Elas não são usadas pelo cron (que chama o service direto), então o ranking mensal automático
+> não é afetado. Quem consumir essas rotas manualmente precisará enviar a API key.
+
+O guard é aplicado a nível de **controller** (`@UseGuards`), seguindo o padrão já usado no
+`SchedulerController`. Não exporemos nenhuma rota nova que retorne valores de gasto sem `ApiKeyGuard`.
+
+### 6.2 `CentralCartHmacGuard` (novo)
 
 - Lê o **raw body** exato (habilitado via `NestFactory.create(AppModule, { rawBody: true })` no `main.ts`; acessa `request.rawBody`).
 - `expected = HMAC_SHA256(secret, ` `${timestamp}.${rawBody}` `).digest('hex')`.
@@ -223,7 +247,8 @@ envs como `@IsOptional`.
 ## 11. Escopo
 
 **No MVP:** webhook `ORDER_APPROVED` → cargo por tier (substitutivo) + DM; endpoint admin de sync manual;
-guard HMAC fail-secure; tudo stateless.
+guard HMAC fail-secure; **hardening de segurança das rotas** (proteger as rotas existentes de
+`top-customers` que vazam recebimentos); tudo stateless.
 
 **Fora do MVP (extensões futuras):**
 - Rebaixamento de tier em `ORDER_REFUNDED`/`ORDER_CHARGEDBACK`.
@@ -259,4 +284,5 @@ guard HMAC fail-secure; tudo stateless.
 - `src/central-cart-api/central-cart-api.service.ts` (`getUserSpent`)
 - `src/discord/discord.module.ts` (provê/exporta `DiscordBotService`)
 - `src/webhook/webhook.controller.ts` + `src/webhook/webhook.module.ts` (endpoint `order` + imports)
+- `src/central-cart-api/central-cart-api.controller.ts` (**hardening**: `@UseGuards(ApiKeyGuard)` — protege as rotas de `top-customers` que hoje expõem recebimentos)
 - `.env.example`, `docker-compose`/`Dockerfile`, `README.md`, `CLAUDE.md` (documentação)
