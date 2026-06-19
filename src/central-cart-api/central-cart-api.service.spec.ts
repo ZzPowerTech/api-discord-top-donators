@@ -88,4 +88,36 @@ describe('CentralCartApiService (caracterizacao)', () => {
       await expect(service.getPosts('loja.austv.net')).resolves.toEqual([]);
     });
   });
+
+  describe('getUserSpent', () => {
+    it('consulta por email e mapeia a resposta', async () => {
+      httpGet.mockReturnValue(
+        of({ data: { total_net_received: 240, total_gross_received: 250 } }),
+      );
+
+      const result = await service.getUserSpent({ email: 'a@b.com' });
+
+      expect(result).toEqual({ totalNetReceived: 240, totalGrossReceived: 250 });
+      const [, options] = httpGet.mock.calls[0];
+      expect(options.params).toEqual({ email: 'a@b.com' });
+    });
+
+    it('cai para client_identifier quando não há email', async () => {
+      httpGet.mockReturnValue(
+        of({ data: { total_net_received: 60, total_gross_received: 60 } }),
+      );
+
+      await service.getUserSpent({ identifier: 'Nick' });
+
+      const [, options] = httpGet.mock.calls[0];
+      expect(options.params).toEqual({ client_identifier: 'Nick' });
+    });
+
+    it('relança o erro em falha HTTP', async () => {
+      httpGet.mockReturnValue(throwError(() => new Error('HTTP 500')));
+      await expect(service.getUserSpent({ email: 'a@b.com' })).rejects.toThrow(
+        'HTTP 500',
+      );
+    });
+  });
 });

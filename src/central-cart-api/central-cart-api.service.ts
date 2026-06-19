@@ -3,6 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { config } from '../config/config';
 import { TopCustomersResponse, TopCustomerView } from './dto/top-customer.dto';
+import { RawUserSpent, UserSpent } from './dto/user-spent.dto';
 import { PostDto } from './dto/post.dto';
 import { getErrorMessage } from '../common/utils/get-error-message';
 import { parseBRL } from '../common/utils/parse-brl';
@@ -50,6 +51,35 @@ export class CentralCartApiService {
   async getTopCustomersFromPreviousMonth(): Promise<TopCustomerView[]> {
     const { from, to } = getPreviousMonthRange(new Date());
     return this.getTopCustomers(from, to);
+  }
+
+  /**
+   * Total já gasto por um cliente. Consulta por email (preferencial) ou
+   * client_identifier. Diferente de getPosts, RELANÇA em erro: sem o total não
+   * há como decidir o tier; quem chama (orquestrador/controller) trata.
+   */
+  async getUserSpent(query: {
+    email?: string;
+    identifier?: string;
+  }): Promise<UserSpent> {
+    const url = `${config.centralCart.apiUrl}/app/user_spent`;
+    const params = query.email
+      ? { email: query.email }
+      : { client_identifier: query.identifier };
+
+    const response = await firstValueFrom(
+      this.httpService.get<RawUserSpent>(url, {
+        params,
+        headers: {
+          Authorization: `Bearer ${config.centralCart.bearerToken}`,
+        },
+      }),
+    );
+
+    return {
+      totalNetReceived: response.data.total_net_received ?? 0,
+      totalGrossReceived: response.data.total_gross_received ?? 0,
+    };
   }
 
   async getPosts(storeId?: string): Promise<PostDto[]> {
