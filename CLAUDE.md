@@ -39,11 +39,15 @@ A app sobe na porta `PORT` ou `3333` (default). Variáveis de ambiente vêm de `
 Fluxo de dependência entre módulos (todos registrados em `src/app.module.ts`):
 
 ```
-SchedulerModule  ──▶ CentralCartApiModule  (busca dados: top customers + posts)
-                 ──▶ DiscordModule          (envio via webhook)
-                 ──▶ ImageGeneratorModule   (geração de PNG)
+SchedulerModule      ──▶ CentralCartApiModule  (busca dados: top customers + posts)
+                     ──▶ DiscordModule          (envio via webhook)
+                     ──▶ ImageGeneratorModule   (geração de PNG)
 
-WebhookModule    ──▶ DiscordModule          (recebe webhook externo → Discord)
+WebhookModule        ──▶ DiscordModule          (recebe webhook externo → Discord)
+                     ──▶ DonationRolesModule    (processa ORDER_APPROVED → cargo + DM)
+
+DonationRolesModule  ──▶ CentralCartApiModule  (consulta total gasto: user_spent)
+                     ──▶ DiscordBotService      (atribui/remove cargos e envia DM)
 ```
 
 - **`SchedulerModule`** é o orquestrador. Contém dois serviços com `@Cron`:
@@ -66,6 +70,14 @@ WebhookModule    ──▶ DiscordModule          (recebe webhook externo → Di
   - `sendImageWithEmbed()` — upload multipart (`form-data`) com `attachment://top-donators.png`.
   - `sendPostUpdate()` — embed com link do post. A construção do link prioriza `post.path` da API; fallbacks derivam de `slug` + `created_at` (em UTC). Usa `DISCORD_UPDATES_WEBHOOK_URL`, caindo para `DISCORD_WEBHOOK_URL`.
 
+- **`DonationRolesModule`** — orquestra o fluxo de cargos por meta de doação acumulada. Stateless (sem banco):
+  1. `WebhookController` recebe `POST /webhook/centralcart/order`, valida HMAC-SHA256 com `CENTRALCART_ORDER_WEBHOOK_SECRET`.
+  2. `DonationRolesService` consulta `GET /app/user_spent` via `CentralCartApiModule` (campo `total_net_received`) e calcula o tier (R$ 60 / R$ 180 / R$ 500).
+  3. Se o tier subiu, chama `DiscordBotService` para remover o cargo anterior e atribuir o novo (modelo substitutivo), além de enviar uma DM ao membro.
+  - `POST /donations/sync` (admin, `x-api-key`) permite backfill manual por `discordId` + `email`/`identifier`.
+
+- **`DiscordBotService`** — distinto do `DiscordModule` de webhooks. Usa `@discordjs/rest` para chamadas REST autenticadas com `DISCORD_BOT_TOKEN` (requer permissão **Manage Roles** e cargo do bot acima dos cargos de meta na hierarquia do guild `DISCORD_GUILD_ID`). Expõe `assignRole()`, `removeRole()` e `sendDM()`.
+
 - **`config/config.ts`** — todo acesso a env é centralizado via **getters** (avaliados em tempo de chamada, não no boot). Sempre leia config por aqui em vez de `process.env` direto.
 
 ## Endpoints
@@ -77,10 +89,12 @@ Os caminhos reais divergem do README em alguns pontos — confie no código:
 - `POST /scheduler/send-latest-post` — reenvia o post mais recente.
 - `POST /scheduler/check-new-posts` — força a verificação de novos posts.
 - `GET  /scheduler/test-posts-api?storeId=` — debug da API de posts.
-- `GET  /central-cart-api/top-customers?from=&to=`
-- `GET  /central-cart-api/top-customers/previous-month`
+- `GET  /central-cart-api/top-customers?from=&to=` — **requer `x-api-key`**.
+- `GET  /central-cart-api/top-customers/previous-month` — **requer `x-api-key`**.
 - `POST /webhook/centralcart/post-created` — webhook externo da Central Cart.
+- `POST /webhook/centralcart/order` — webhook `ORDER_APPROVED`; valida HMAC-SHA256 (`CENTRALCART_ORDER_WEBHOOK_SECRET`); dispara atribuição de cargo por tier.
 - `POST /webhook/test` — teste manual de post no Discord.
+- `POST /donations/sync` — backfill manual de cargo por doação; requer `x-api-key`; body `{ discordId, email?, identifier? }`.
 
 ## CI/CD
 

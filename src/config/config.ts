@@ -28,6 +28,9 @@ export const config = {
     get webhookSecret() {
       return process.env.CENTRALCART_WEBHOOK_SECRET;
     },
+    get orderWebhookSecret() {
+      return process.env.CENTRALCART_ORDER_WEBHOOK_SECRET;
+    },
   },
   discord: {
     get webhookUrl() {
@@ -44,6 +47,20 @@ export const config = {
     },
     get botToken() {
       return process.env.DISCORD_BOT_TOKEN;
+    },
+    get guildId() {
+      return process.env.DISCORD_GUILD_ID;
+    },
+  },
+  donationRoles: {
+    get tier1RoleId() {
+      return process.env.DONATION_TIER_1_ROLE_ID;
+    },
+    get tier2RoleId() {
+      return process.env.DONATION_TIER_2_ROLE_ID;
+    },
+    get tier3RoleId() {
+      return process.env.DONATION_TIER_3_ROLE_ID;
     },
   },
 };
