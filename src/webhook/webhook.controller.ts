@@ -5,12 +5,18 @@ import { CentralCartPostWebhookDto } from './dto/central-cart-post-webhook.dto';
 import { TestWebhookDto } from './dto/test-webhook.dto';
 import { WebhookSignatureGuard } from '../common/guards/webhook-signature.guard';
 import { ApiKeyGuard } from '../common/guards/api-key.guard';
+import { CentralCartHmacGuard } from '../common/guards/central-cart-hmac.guard';
+import { CentralCartOrderWebhookDto } from './dto/central-cart-order-webhook.dto';
+import { DonationRolesService } from '../donation-roles/donation-roles.service';
 
 @Controller('webhook')
 export class WebhookController {
   private readonly logger = new Logger(WebhookController.name);
 
-  constructor(private readonly discordService: DiscordService) {}
+  constructor(
+    private readonly discordService: DiscordService,
+    private readonly donationRolesService: DonationRolesService,
+  ) {}
 
   @Post('centralcart/post-created')
   @UseGuards(WebhookSignatureGuard)
@@ -40,6 +46,33 @@ export class WebhookController {
         success: false,
         error: getErrorMessage(error),
       };
+    }
+  }
+
+  @Post('centralcart/order')
+  @UseGuards(CentralCartHmacGuard)
+  async handleOrder(@Body() dto: CentralCartOrderWebhookDto) {
+    if (dto.event !== 'ORDER_APPROVED') {
+      return { success: true, ignored: dto.event };
+    }
+
+    const discordId = dto.data.client_discord;
+    if (!discordId) {
+      this.logger.warn('Ordem aprovada sem client_discord; ignorando.');
+      return { success: true, ignored: 'no_discord' };
+    }
+
+    try {
+      const result = await this.donationRolesService.applyForDiscordUser({
+        discordId,
+        email: dto.data.client_email,
+        identifier: dto.data.client_identifier,
+      });
+      return { success: true, result };
+    } catch (error) {
+      // Resiliência: o webhook não deve falhar por erro de processamento.
+      this.logger.error('Erro ao processar ordem aprovada', error);
+      return { success: false, error: getErrorMessage(error) };
     }
   }
 
