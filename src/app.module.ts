@@ -4,6 +4,7 @@ import { ConfigModule } from '@nestjs/config';
 import { CentralCartApiModule } from './central-cart-api/central-cart-api.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
 import { WebhookModule } from './webhook/webhook.module';
+import { DonationRolesModule } from './donation-roles/donation-roles.module';
 import { HealthModule } from './health/health.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 import { validateEnv } from './config/env.validation';
@@ -19,6 +20,7 @@ import { validateEnv } from './config/env.validation';
     CentralCartApiModule,
     SchedulerModule,
     WebhookModule,
+    DonationRolesModule,
     HealthModule,
   ],
   providers: [
