@@ -8,6 +8,7 @@ import { ApiKeyGuard } from '../common/guards/api-key.guard';
 import { CentralCartHmacGuard } from '../common/guards/central-cart-hmac.guard';
 import { CentralCartOrderWebhookDto } from './dto/central-cart-order-webhook.dto';
 import { DonationRolesService } from '../donation-roles/donation-roles.service';
+import { isDiscordSnowflake } from '../common/utils/discord-snowflake';
 
 @Controller('webhook')
 export class WebhookController {
@@ -61,6 +62,12 @@ export class WebhookController {
       this.logger.warn('Ordem aprovada sem client_discord; ignorando.');
       return { success: true, ignored: 'no_discord' };
     }
+    if (!isDiscordSnowflake(discordId)) {
+      this.logger.warn(
+        `Ordem aprovada com client_discord invalido (${discordId}); ignorando.`,
+      );
+      return { success: true, ignored: 'invalid_discord' };
+    }
 
     try {
       const result = await this.donationRolesService.applyForDiscordUser({
@@ -70,9 +77,10 @@ export class WebhookController {
       });
       return { success: true, result };
     } catch (error) {
-      // Resiliência: o webhook não deve falhar por erro de processamento.
+      // Resiliência: o webhook não deve falhar por erro de processamento. Nao
+      // expomos o detalhe interno ao chamador externo; logamos internamente.
       this.logger.error('Erro ao processar ordem aprovada', error);
-      return { success: false, error: getErrorMessage(error) };
+      return { success: false, error: 'processing_error' };
     }
   }
 

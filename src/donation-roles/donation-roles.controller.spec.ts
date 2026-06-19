@@ -3,7 +3,9 @@ import type { DonationRolesService } from './donation-roles.service';
 
 describe('DonationRolesController', () => {
   it('encaminha o sync para o serviço e retorna o resultado', async () => {
-    const apply = jest.fn().mockResolvedValue({ action: 'upgraded', newTier: 2 });
+    const apply = jest
+      .fn()
+      .mockResolvedValue({ action: 'upgraded', newTier: 2 });
     const controller = new DonationRolesController({
       applyForDiscordUser: apply,
     } as unknown as DonationRolesService);

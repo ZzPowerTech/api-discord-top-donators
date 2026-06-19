@@ -52,4 +52,15 @@ export const config = {
       return process.env.DISCORD_GUILD_ID;
     },
   },
+  donationRoles: {
+    get tier1RoleId() {
+      return process.env.DONATION_TIER_1_ROLE_ID;
+    },
+    get tier2RoleId() {
+      return process.env.DONATION_TIER_2_ROLE_ID;
+    },
+    get tier3RoleId() {
+      return process.env.DONATION_TIER_3_ROLE_ID;
+    },
+  },
 };

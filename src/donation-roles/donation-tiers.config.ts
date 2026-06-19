@@ -1,3 +1,5 @@
+import { config } from '../config/config';
+
 /** Um tier de doacao: meta acumulada (liquida) → cargo do Discord. */
 export interface DonationTier {
   tier: number; // 1, 2, 3 (ordem crescente)
@@ -14,27 +16,27 @@ const DEFAULT_ROLE_IDS: Record<number, string> = {
 };
 
 /**
- * Lista de tiers ordenada por threshold crescente. Le os role IDs das envs
- * DONATION_TIER_<n>_ROLE_ID, caindo para os defaults quando ausentes.
+ * Lista de tiers ordenada por threshold crescente. Le os role IDs do config
+ * (envs DONATION_TIER_<n>_ROLE_ID), caindo para os defaults quando ausentes.
  */
 export function getDonationTiers(): DonationTier[] {
   return [
     {
       tier: 1,
       threshold: 60,
-      roleId: process.env.DONATION_TIER_1_ROLE_ID || DEFAULT_ROLE_IDS[1],
+      roleId: config.donationRoles.tier1RoleId || DEFAULT_ROLE_IDS[1],
       label: 'R$ 60',
     },
     {
       tier: 2,
       threshold: 180,
-      roleId: process.env.DONATION_TIER_2_ROLE_ID || DEFAULT_ROLE_IDS[2],
+      roleId: config.donationRoles.tier2RoleId || DEFAULT_ROLE_IDS[2],
       label: 'R$ 180',
     },
     {
       tier: 3,
       threshold: 500,
-      roleId: process.env.DONATION_TIER_3_ROLE_ID || DEFAULT_ROLE_IDS[3],
+      roleId: config.donationRoles.tier3RoleId || DEFAULT_ROLE_IDS[3],
       label: 'R$ 500',
     },
   ];

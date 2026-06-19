@@ -10,7 +10,9 @@ const SECRET = 'whsec_test';
 const BODY = '{"event":"ORDER_APPROVED"}';
 
 function sign(timestamp: string, body: string): string {
-  return createHmac('sha256', SECRET).update(`${timestamp}.${body}`).digest('hex');
+  return createHmac('sha256', SECRET)
+    .update(`${timestamp}.${body}`)
+    .digest('hex');
 }
 
 function context(
@@ -47,7 +49,10 @@ describe('CentralCartHmacGuard', () => {
     process.env = { ...ORIGINAL_ENV, CENTRALCART_ORDER_WEBHOOK_SECRET: SECRET };
     const ts = String(Math.floor(Date.now() / 1000));
     const ctx = context(
-      { 'x-centralcart-timestamp': ts, 'x-centralcart-signature': sign(ts, BODY) },
+      {
+        'x-centralcart-timestamp': ts,
+        'x-centralcart-signature': sign(ts, BODY),
+      },
       BODY,
     );
     expect(guard.canActivate(ctx)).toBe(true);
@@ -67,7 +72,10 @@ describe('CentralCartHmacGuard', () => {
     process.env = { ...ORIGINAL_ENV, CENTRALCART_ORDER_WEBHOOK_SECRET: SECRET };
     const ts = String(Math.floor(Date.now() / 1000) - 1000); // > 300s atrás
     const ctx = context(
-      { 'x-centralcart-timestamp': ts, 'x-centralcart-signature': sign(ts, BODY) },
+      {
+        'x-centralcart-timestamp': ts,
+        'x-centralcart-signature': sign(ts, BODY),
+      },
       BODY,
     );
     expect(() => guard.canActivate(ctx)).toThrow(UnauthorizedException);

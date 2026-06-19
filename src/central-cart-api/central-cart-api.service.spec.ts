@@ -97,7 +97,10 @@ describe('CentralCartApiService (caracterizacao)', () => {
 
       const result = await service.getUserSpent({ email: 'a@b.com' });
 
-      expect(result).toEqual({ totalNetReceived: 240, totalGrossReceived: 250 });
+      expect(result).toEqual({
+        totalNetReceived: 240,
+        totalGrossReceived: 250,
+      });
       const [, options] = httpGet.mock.calls[0];
       expect(options.params).toEqual({ email: 'a@b.com' });
     });

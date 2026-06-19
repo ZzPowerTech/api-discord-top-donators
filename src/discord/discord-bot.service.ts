@@ -57,7 +57,9 @@ export class DiscordBotService {
   }
 
   async removeRole(userId: string, roleId: string): Promise<void> {
-    await this.rest.delete(Routes.guildMemberRole(this.guildId, userId, roleId));
+    await this.rest.delete(
+      Routes.guildMemberRole(this.guildId, userId, roleId),
+    );
   }
 
   /** Abre (ou reabre) o canal de DM e envia o embed. Pode lançar 403 se a DM estiver bloqueada. */

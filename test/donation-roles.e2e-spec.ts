@@ -7,8 +7,10 @@ import { CentralCartApiService } from '../src/central-cart-api/central-cart-api.
 import { DiscordBotService } from '../src/discord/discord-bot.service';
 
 const SECRET = 'whsec_e2e';
+const API_KEY = 'apikey_e2e';
+const DISCORD_ID = '123456789012345678';
 
-describe('Webhook ORDER_APPROVED (e2e)', () => {
+describe('Cargos por meta de doação (e2e)', () => {
   let app: INestApplication;
   const getUserSpent = jest
     .fn()
@@ -21,6 +23,7 @@ describe('Webhook ORDER_APPROVED (e2e)', () => {
   beforeAll(async () => {
     process.env.CENTRALCART_ORDER_WEBHOOK_SECRET = SECRET;
     process.env.DISCORD_GUILD_ID = 'guild-e2e';
+    process.env.SCHEDULER_API_KEY = API_KEY;
 
     const moduleRef = await Test.createTestingModule({
       imports: [AppModule],
@@ -32,7 +35,9 @@ describe('Webhook ORDER_APPROVED (e2e)', () => {
       .compile();
 
     app = moduleRef.createNestApplication({ rawBody: true });
-    app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalPipes(
+      new ValidationPipe({ whitelist: true, transform: true }),
+    );
     await app.init();
   });
 
@@ -40,43 +45,80 @@ describe('Webhook ORDER_APPROVED (e2e)', () => {
     await app.close();
   });
 
-  it('assinatura válida → aplica tier e responde 201', async () => {
-    const body = JSON.stringify({
-      id: 'evt-e2e',
-      event: 'ORDER_APPROVED',
-      date: new Date().toISOString(),
-      data: {
-        client_discord: '999',
-        client_email: 'a@b.com',
-        status: 'APPROVED',
-      },
+  describe('POST /webhook/centralcart/order', () => {
+    it('assinatura válida → aplica tier e responde 201', async () => {
+      const body = JSON.stringify({
+        id: 'evt-e2e',
+        event: 'ORDER_APPROVED',
+        date: new Date().toISOString(),
+        data: {
+          client_discord: DISCORD_ID,
+          client_email: 'a@b.com',
+          status: 'APPROVED',
+        },
+      });
+      const ts = String(Math.floor(Date.now() / 1000));
+      const signature = createHmac('sha256', SECRET)
+        .update(`${ts}.${body}`)
+        .digest('hex');
+
+      await request(app.getHttpServer())
+        .post('/webhook/centralcart/order')
+        .set('Content-Type', 'application/json')
+        .set('x-centralcart-timestamp', ts)
+        .set('x-centralcart-signature', signature)
+        .send(body)
+        .expect(201);
+
+      expect(addRole).toHaveBeenCalledWith(DISCORD_ID, expect.any(String));
     });
-    const ts = String(Math.floor(Date.now() / 1000));
-    const signature = createHmac('sha256', SECRET)
-      .update(`${ts}.${body}`)
-      .digest('hex');
 
-    await request(app.getHttpServer())
-      .post('/webhook/centralcart/order')
-      .set('Content-Type', 'application/json')
-      .set('x-centralcart-timestamp', ts)
-      .set('x-centralcart-signature', signature)
-      .send(body)
-      .expect(201);
+    it('assinatura inválida → 401', async () => {
+      const body = JSON.stringify({
+        id: 'x',
+        event: 'ORDER_APPROVED',
+        data: {},
+      });
+      const ts = String(Math.floor(Date.now() / 1000));
 
-    expect(addRole).toHaveBeenCalledWith('999', expect.any(String));
+      await request(app.getHttpServer())
+        .post('/webhook/centralcart/order')
+        .set('Content-Type', 'application/json')
+        .set('x-centralcart-timestamp', ts)
+        .set('x-centralcart-signature', 'invalida')
+        .send(body)
+        .expect(401);
+    });
   });
 
-  it('assinatura inválida → 401', async () => {
-    const body = JSON.stringify({ id: 'x', event: 'ORDER_APPROVED', data: {} });
-    const ts = String(Math.floor(Date.now() / 1000));
+  describe('POST /donations/sync', () => {
+    it('sem x-api-key → 401', async () => {
+      await request(app.getHttpServer())
+        .post('/donations/sync')
+        .send({ discordId: DISCORD_ID, email: 'a@b.com' })
+        .expect(401);
+    });
 
-    await request(app.getHttpServer())
-      .post('/webhook/centralcart/order')
-      .set('Content-Type', 'application/json')
-      .set('x-centralcart-timestamp', ts)
-      .set('x-centralcart-signature', 'invalida')
-      .send(body)
-      .expect(401);
+    it('discordId inválido (com api key) → 400', async () => {
+      await request(app.getHttpServer())
+        .post('/donations/sync')
+        .set('x-api-key', API_KEY)
+        .send({ discordId: 'nao-snowflake', email: 'a@b.com' })
+        .expect(400);
+    });
+
+    it('api key válida + body válido → 201 e consulta o total', async () => {
+      const res = await request(app.getHttpServer())
+        .post('/donations/sync')
+        .set('x-api-key', API_KEY)
+        .send({ discordId: DISCORD_ID, email: 'sync@b.com' })
+        .expect(201);
+
+      expect(res.body).toMatchObject({ success: true });
+      expect(getUserSpent).toHaveBeenCalledWith({
+        email: 'sync@b.com',
+        identifier: undefined,
+      });
+    });
   });
 });
