@@ -28,6 +28,9 @@ export const config = {
     get webhookSecret() {
       return process.env.CENTRALCART_WEBHOOK_SECRET;
     },
+    get orderWebhookSecret() {
+      return process.env.CENTRALCART_ORDER_WEBHOOK_SECRET;
+    },
   },
   discord: {
     get webhookUrl() {
@@ -44,6 +47,9 @@ export const config = {
     },
     get botToken() {
       return process.env.DISCORD_BOT_TOKEN;
+    },
+    get guildId() {
+      return process.env.DISCORD_GUILD_ID;
     },
   },
 };

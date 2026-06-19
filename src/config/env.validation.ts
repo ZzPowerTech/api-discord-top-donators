@@ -54,6 +54,26 @@ class EnvironmentVariables {
 
   @IsOptional()
   @IsString()
+  DISCORD_GUILD_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  CENTRALCART_ORDER_WEBHOOK_SECRET?: string;
+
+  @IsOptional()
+  @IsString()
+  DONATION_TIER_1_ROLE_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  DONATION_TIER_2_ROLE_ID?: string;
+
+  @IsOptional()
+  @IsString()
+  DONATION_TIER_3_ROLE_ID?: string;
+
+  @IsOptional()
+  @IsString()
   PORT?: string;
 
   @IsOptional()
