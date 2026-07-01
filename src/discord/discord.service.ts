@@ -65,7 +65,12 @@ export class DiscordService {
       embeds: [embed],
     };
     if (roleId) {
-      payload.content = `<@&${roleId}>`;
+      // O cargo @everyone não é mencionado via <@&id> (isso renderiza como
+      // "@@everyone", pois o nome do cargo já contém o @). Usa-se o texto literal.
+      const isEveryone = ['everyone', '@everyone'].includes(
+        roleId.trim().toLowerCase(),
+      );
+      payload.content = isEveryone ? '@everyone' : `<@&${roleId}>`;
     }
 
     await firstValueFrom(
