@@ -47,6 +47,12 @@ describe('DiscordService.sendPostUpdate', () => {
     );
   });
 
+  it('usa o texto literal @everyone quando DISCORD_UPDATES_ROLE_ID eh "everyone"', async () => {
+    process.env.DISCORD_UPDATES_ROLE_ID = 'everyone';
+    await service.sendPostUpdate({ title: 't', content: 'c' });
+    expect(payloadEnviado().content).toBe('@everyone');
+  });
+
   it('omite o mention quando DISCORD_UPDATES_ROLE_ID nao esta definido', async () => {
     delete process.env.DISCORD_UPDATES_ROLE_ID;
     await service.sendPostUpdate({ title: 't', content: 'c' });
